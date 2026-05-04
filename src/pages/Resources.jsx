@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import AppShell from "../components/AppShell";
 import api from "../api/axios";
 import toast from "react-hot-toast";
-import { Bookmark, BookmarkCheck, ExternalLink } from "lucide-react";
+import { Bookmark, BookmarkCheck } from "lucide-react";
 
 const TYPE_META = {
   article: {
@@ -67,7 +67,6 @@ export default function Resources() {
         toast.error("Failed to load resources");
       }
     };
-
     loadResources();
   }, []);
 
@@ -106,15 +105,15 @@ export default function Resources() {
   return (
     <AppShell>
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-4">
         <h1 className="text-xl font-bold text-navy">📚 Resources</h1>
         <p className="text-sm text-gray-500">
           Curated articles, videos, and infographics for your mental wellness
         </p>
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-2 mb-6">
+      {/* Filter tabs — scrollable on mobile */}
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
         {[
           ["all", "All"],
           ["article", "Article"],
@@ -124,7 +123,7 @@ export default function Resources() {
           <button
             key={key}
             onClick={() => setFilter(key)}
-            className={`px-4 py-2 rounded-lg text-[10px] font-bold border-none cursor-pointer transition-colors
+            className={`px-4 py-2 rounded-lg text-[10px] font-bold border-none cursor-pointer transition-colors whitespace-nowrap flex-shrink-0
             ${
               filter === key
                 ? "bg-navy text-white"
@@ -136,10 +135,10 @@ export default function Resources() {
         ))}
       </div>
 
-      {/* Main layout */}
-      <div className="flex gap-6">
+      {/* Main layout — stacks on mobile, side-by-side on lg+ */}
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* Resource Grid */}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-gray-400">
               <div className="text-4xl mb-3">📭</div>
@@ -179,10 +178,10 @@ export default function Resources() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <div className="flex flex-col sm:flex-row items-center gap-1.5 flex-shrink-0">
                       <button
                         onClick={() => handleView(resource)}
-                        className="flex-1 py-1.5 rounded-md text-[9px] font-bold cursor-pointer border transition-colors hover:opacity-80"
+                        className="px-3 py-1.5 rounded-md text-[9px] font-bold cursor-pointer border transition-colors hover:opacity-80 whitespace-nowrap"
                         style={{
                           color: meta.color,
                           borderColor: meta.color,
@@ -214,8 +213,8 @@ export default function Resources() {
           )}
         </div>
 
-        {/* Right Sidebar */}
-        <div className="w-64 flex-shrink-0 flex flex-col gap-4">
+        {/* Right Panel — full width on mobile, fixed width on lg+ */}
+        <div className="w-full lg:w-64 flex-shrink-0 flex flex-col gap-4">
           {/* Crisis Helplines */}
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <h3 className="text-sm font-bold text-gray-700 mb-3">

@@ -11,7 +11,7 @@ import {
   Shield,
 } from "lucide-react";
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -35,7 +35,7 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-[220px] bg-sidebar flex flex-col py-0 px-2 flex-shrink-0">
+    <aside className="w-[220px] bg-sidebar flex flex-col py-0 px-2 flex-shrink-0 h-full">
       {/* Profile Section */}
       <div className="flex flex-col items-center py-[18px] border-b border-[#2A3A4E] mb-2">
         <div className="w-[60px] h-[60px] bg-[#3A5070] border-2 border-[#4A7090] rounded-full flex items-center justify-center text-white text-2xl font-bold mb-2">
@@ -44,7 +44,6 @@ export default function Sidebar() {
         <span className="text-[10px] font-bold text-[#BDD5EA]">
           {user?.name}
         </span>
-
         {user?.isadmin ? (
           <span className="text-[8px] bg-accent text-white px-2 py-0.5 rounded mt-1 font-bold tracking-wider">
             ADMIN
@@ -59,13 +58,12 @@ export default function Sidebar() {
       {/* Navigation Links */}
       <nav className="flex flex-col flex-1 mt-1">
         {navItems.map((item) => {
-          // Assign the icon to a capitalized variable so the linter easily recognizes it as a React component
           const NavIcon = item.icon;
-
           return (
             <NavLink
               key={item.to}
               to={item.to}
+              onClick={onClose}
               className={({ isActive }) =>
                 `flex items-center gap-2.5 h-[42px] px-3 rounded-lg mb-1 text-[11px] font-medium no-underline transition-colors ${
                   isActive
@@ -81,7 +79,7 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Logout Button */}
+      {/* Logout */}
       <button
         onClick={handleLogout}
         className="flex items-center gap-2.5 h-[42px] px-3 rounded-lg text-[11px] text-[#CC5555] border border-[#CC333344] hover:bg-[#2A1A1A] transition-colors mt-auto mb-1"

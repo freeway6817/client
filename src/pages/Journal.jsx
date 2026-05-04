@@ -53,7 +53,6 @@ export default function Journal() {
   const canvasRef = useRef(null);
   const isDrawing = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
-  // Keep canvas alive across mode switches so drawings aren't lost
   const canvasInitialized = useRef(false);
 
   // ── Fetch entries ──────────────────────────────────────────
@@ -71,18 +70,14 @@ export default function Journal() {
   }, []);
 
   // ── Canvas: sync internal pixel size to displayed CSS size ──
-  // BUG FIX #1: If the canvas HTML width/height attrs don't match the
-  // rendered CSS size, every mouse position will be offset.
   const syncCanvasSize = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     if (canvas.width !== rect.width || canvas.height !== rect.height) {
-      // Save drawing before resize
       const snapshot = canvas.toDataURL();
       canvas.width = rect.width;
       canvas.height = rect.height;
-      // Restore drawing + ensure white background after resize
       const ctx = canvas.getContext("2d");
       ctx.fillStyle = "#FFFFFF";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -96,11 +91,8 @@ export default function Journal() {
   }, [history.length]);
 
   // ── Canvas: initialize white background on first render ──────
-  // BUG FIX #2: HTML5 canvas is transparent by default.
-  // Without filling white, saved PNGs have a black/transparent background.
   useEffect(() => {
     if (mode !== "creative") return;
-    // Use requestAnimationFrame so the canvas is painted & sized by browser first
     const raf = requestAnimationFrame(() => {
       const canvas = canvasRef.current;
       if (!canvas || canvasInitialized.current) return;
@@ -125,10 +117,8 @@ export default function Journal() {
   const getPos = (e) => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    // Support both mouse events and touch events
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    // Scale from CSS pixels to canvas pixels
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     return {
@@ -141,7 +131,6 @@ export default function Journal() {
     e.preventDefault();
     isDrawing.current = true;
     lastPos.current = getPos(e);
-    // Save current state to history for undo
     setHistory((prev) => [...prev, canvasRef.current.toDataURL()]);
   };
 
@@ -169,7 +158,6 @@ export default function Journal() {
   const endDraw = (e) => {
     if (e) e.preventDefault();
     isDrawing.current = false;
-    // Reset composite op after eraser
     if (canvasRef.current) {
       canvasRef.current.getContext("2d").globalCompositeOperation =
         "source-over";
@@ -215,10 +203,6 @@ export default function Journal() {
   const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
 
   // ── Save entry ────────────────────────────────────────────────
-  // BUG FIX #3: The previous version called `afterSave` inside an async
-  // callback inside `handleSave`, but `afterSave` was defined with `const`
-  // AFTER `handleSave` — this is safe at call-time but confusing and
-  // hard to maintain. Restructured so the flow is linear.
   const handleSave = async () => {
     if (mode === "text" && !content.trim()) {
       toast.error("Write something before saving");
@@ -241,7 +225,6 @@ export default function Journal() {
       }
 
       if (mode === "creative") {
-        // Capture canvas as a PNG blob and attach it
         await new Promise((resolve, reject) => {
           canvasRef.current.toBlob((blob) => {
             if (blob) {
@@ -266,7 +249,7 @@ export default function Journal() {
       setPhoto(null);
       setPhotoPreview(null);
       clearCanvas();
-      canvasInitialized.current = false; // allow re-init on next creative mode open
+      canvasInitialized.current = false;
       fetchEntries();
     } catch {
       toast.error("Failed to save entry");
@@ -307,8 +290,8 @@ export default function Journal() {
           </p>
         </div>
 
-        {/* Two-column layout */}
-        <div className="grid grid-cols-[1fr_320px] gap-3 flex-1 overflow-hidden min-h-0">
+        {/* ── Two-column layout: stacks on mobile, side-by-side on md+ ── */}
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_320px] gap-3 flex-1 overflow-auto min-h-0">
           {/* ── LEFT: Prompts + Write ─────────────────────────── */}
           <div className="flex flex-col gap-3 overflow-y-auto pr-1">
             {/* Today's Journal Prompts */}
@@ -316,7 +299,8 @@ export default function Journal() {
               <div className="px-3.5 py-2.5 text-[12px] font-bold text-[#512DA8] bg-[#EDE7F6] rounded-t-xl">
                 💬 Today's Journal Prompts
               </div>
-              <div className="p-3 grid grid-cols-2 gap-2">
+              {/* ── Prompts grid: 1 col on mobile, 2 cols on sm+ ── */}
+              <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {PROMPTS.map((p) => {
                   const colors = TAG_COLORS[p.tag];
                   const isActive = selectedPrompt?.id === p.id;
@@ -491,9 +475,7 @@ export default function Journal() {
                 )}
 
                 {/* ── CREATIVE MODE ────────────────────────── */}
-                {/* Keep the textarea mounted even in creative mode so content isn't lost on switch */}
                 <div className={mode === "creative" ? "block" : "hidden"}>
-                  {/* Textarea for optional caption */}
                   <textarea
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
@@ -562,10 +544,6 @@ export default function Journal() {
                     </div>
                   </div>
 
-                  {/* Canvas
-                      IMPORTANT: Do NOT set width/height attributes here.
-                      syncCanvasSize() sets them dynamically after measuring the
-                      rendered CSS width — this prevents coordinate offset bugs. */}
                   <canvas
                     ref={canvasRef}
                     className="w-full rounded-lg bg-white cursor-crosshair border border-[#B39DDB] touch-none"
@@ -623,19 +601,16 @@ export default function Journal() {
                       key={entry.id}
                       className="bg-[#FAF8FF] border border-[#E0D8F0] rounded-xl p-2.5 hover:border-[#B39DDB] transition-colors"
                     >
-                      {/* Prompt tag */}
                       {entry.prompt && (
                         <p className="text-[8px] font-semibold text-[#9575CD] mb-1 truncate">
                           {entry.prompt.split("—")[0]?.trim()}
                         </p>
                       )}
 
-                      {/* Content preview */}
                       <p className="text-[9px] text-gray-700 leading-[1.45] line-clamp-3 mb-2">
                         {entry.content}
                       </p>
 
-                      {/* Photo thumbnail if present */}
                       {entry.photo_url && (
                         <img
                           src={entry.photo_url}
@@ -645,7 +620,6 @@ export default function Journal() {
                         />
                       )}
 
-                      {/* Footer row: date + type badge + delete */}
                       <div className="flex items-center justify-between">
                         <span className="text-[8px] text-gray-400">
                           {new Date(entry.created_at).toLocaleDateString(

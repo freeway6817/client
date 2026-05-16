@@ -45,7 +45,7 @@ export default function Landing() {
             </Link>
           </div>
           {/* Optional: Add a hero image here if you have one, or keep it text focused */}
-          <div className="hidden lg:flex justify-center">
+          {/* <div className="hidden lg:flex justify-center">
             <div className="w-[450px] h-[450px] bg-white rounded-full shadow-card flex items-center justify-center border-[10px] border-theme-input relative">
               <HeartPulse size={150} className="text-theme-blue opacity-20" />
               <div className="absolute bg-white p-4 rounded-[10px] shadow-card top-10 right-0 flex items-center gap-3">
@@ -60,12 +60,12 @@ export default function Landing() {
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </section>
 
       {/* Counters Section (Overlapping the hero) */}
-      <section className="relative z-20 -mt-[60px] pb-[100px] px-8 max-w-7xl mx-auto w-full">
+      {/* <section className="relative z-20 -mt-[60px] pb-[100px] px-8 max-w-7xl mx-auto w-full">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white p-6 rounded-[20px] border border-theme-border shadow-card-soft flex items-center gap-4 hover:-translate-y-2 transition-transform duration-300">
             <div className="w-[60px] h-[60px] rounded-full bg-[#FFEFEE] flex items-center justify-center text-theme-red flex-shrink-0">
@@ -123,7 +123,7 @@ export default function Landing() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Footer */}
       <Footer />

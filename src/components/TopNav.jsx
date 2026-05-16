@@ -12,6 +12,7 @@ import {
   Library,
   Bookmark,
   Shield,
+  Trophy,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, NavLink } from "react-router-dom";
@@ -100,9 +101,23 @@ export default function Topnav({ isMobile, mobileNavOpen, setMobileNavOpen }) {
 
         {/* Right: Bell + Profile */}
         <div className="flex items-center gap-3">
-          {!isAdmin && (
+          {/* {!isAdmin && (
             <button className="w-9 h-9 bg-[#2A5080] border border-[#4A7AA0] rounded-lg flex items-center justify-center cursor-pointer hover:bg-[#3A6090] transition-colors">
               <Bell size={15} className="text-white" />
+            </button>
+          )} */}
+          {!isAdmin && (
+            <button
+              onClick={() => {
+                setShowProfile(false);
+                navigate("/progress");
+              }}
+              className="w-full flex items-center gap-2 px-4 py-2 text-[10px] text-gray-700
+               hover:bg-gray-50 hover:text-[#1976D2] border-none bg-transparent
+               cursor-pointer transition-colors text-left"
+            >
+              <Trophy size={14} className="text-yellow-500" />
+              My Progress
             </button>
           )}
 

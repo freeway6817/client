@@ -6,7 +6,6 @@ export default function AdminRoute({ children }) {
 
   if (loading) return null;
 
-  // Changed to the new email
   if (!user || user.email !== "admin@unimasmhwb.com") {
     return <Navigate to="/dashboard" replace />;
   }

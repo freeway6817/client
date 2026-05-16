@@ -18,7 +18,7 @@ export default function ProtectedRoute({
 
   // Not logged in at all
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/landing" replace />;
   }
 
   const isAdmin = user.email === "admin@unimasmhwb.com";

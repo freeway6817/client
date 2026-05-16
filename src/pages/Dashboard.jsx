@@ -14,6 +14,7 @@ import {
   BookOpen,
   CheckCircle,
   ChevronRight,
+  Zap,
 } from "lucide-react";
 
 const EMOJIS = ["😭", "😢", "😐", "🙂", "😁"];
@@ -36,11 +37,13 @@ export default function Dashboard() {
   const [moodScore, setMoodScore] = useState(5);
   const [journalContent, setJournalContent] = useState("");
 
-  // Gamification state (mocked for now, calculates level dynamically)
-  const [xp, setXp] = useState(1250);
-  const xpNeeded = 2000;
+  // Gamification state — fetched from backend
+  const [xp, setXp] = useState(0);
+  const [streakDays, setStreakDays] = useState(0);
+  const [todayLogged, setTodayLogged] = useState(false);
 
-  const level = 4 + Math.floor(xp / xpNeeded);
+  const xpNeeded = 500;
+  const level = Math.max(1, Math.floor(xp / xpNeeded) + 1);
   const currentLevelXp = xp % xpNeeded;
   const xpProgress = (currentLevelXp / xpNeeded) * 100;
 
@@ -49,11 +52,15 @@ export default function Dashboard() {
       api.get("/api/affirmations/daily"),
       api.get("/api/goals"),
       api.get("/api/resources"),
+      api.get("/api/gamification/stats"),
     ])
-      .then(([aff, g, r]) => {
-        setAffirmation(aff?.data?.content || "");
+      .then(([aff, g, r, stats]) => {
+        setAffirmation(aff?.data?.[0]?.content || "");
         setGoals(g?.data?.slice(0, 3) || []);
         setResources(r?.data?.slice(0, 3) || []);
+        setXp(stats?.data?.xp ?? 0);
+        setStreakDays(stats?.data?.currentStreak ?? 0);
+        setTodayLogged(stats?.data?.todayLogged ?? false);
       })
       .catch(() => toast.error("Failed to load dashboard data"));
   }, []);
@@ -68,8 +75,10 @@ export default function Dashboard() {
       formData.append("note", moodNote);
 
       await api.post("/api/moods", formData);
-      toast.success("Mood saved! +25 XP");
-      setXp((prev) => prev + 25);
+      toast.success("Mood saved! +10 XP");
+      setXp((prev) => prev + 10);
+      setTodayLogged(true);
+      if (!todayLogged) setStreakDays((prev) => prev + 1);
       setSelectedEmoji(null);
       setMoodNote("");
     } catch {
@@ -98,36 +107,40 @@ export default function Dashboard() {
 
   return (
     <AppShell>
-      {/* Custom CSS for the gamification progress bar */}
       <style>{`
         .progress-bar-striped {
-            background-image: linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent);
-            background-size: 1rem 1rem;
+          background-image: linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent);
+          background-size: 1rem 1rem;
         }
         .animate-stripes {
-            animation: progress-stripes 1s linear infinite;
+          animation: progress-stripes 1s linear infinite;
         }
         @keyframes progress-stripes {
-            from { background-position: 1rem 0; }
-            to { background-position: 0 0; }
+          from { background-position: 1rem 0; }
+          to   { background-position: 0 0; }
         }
       `}</style>
 
       <div className="flex flex-col gap-4 h-full overflow-y-auto pb-6">
-        {/* Header - Now stacks vertically on mobile, horizontal on sm+ */}
+        {/* ── Header ────────────────────────────────────────────────── */}
         <div className="flex-shrink-0 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3 sm:gap-0">
           <div>
             <h1 className="text-[17px] font-bold text-navy">Dashboard</h1>
             <p className="text-[10px] text-gray-500 mt-0.5">{today}</p>
           </div>
 
-          {/* Gamification Mini-Header */}
+          {/* Gamification pill */}
           <div className="bg-white px-3 py-1.5 rounded-full border border-gray-200 shadow-sm flex items-center gap-3 w-fit">
             <div className="flex items-center gap-1.5 text-[11px] font-bold text-navy">
               <Trophy size={14} className="text-yellow-500" />
               <span>Lvl {level}</span>
             </div>
-            <div className="w-px h-3 bg-gray-300"></div>
+            <div className="w-px h-3 bg-gray-300" />
+            <div className="flex items-center gap-1.5 text-[10px] font-semibold text-gray-600">
+              <Flame size={12} className="text-orange-500" />
+              <span>{streakDays}d streak</span>
+            </div>
+            <div className="w-px h-3 bg-gray-300" />
             <div className="flex items-center gap-1.5 text-[10px] font-semibold text-gray-600">
               <span className="text-purple-600">{currentLevelXp}</span> /{" "}
               {xpNeeded} XP
@@ -135,7 +148,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Top Row: Affirmation + Gamification Widget */}
+        {/* ── Affirmation + Your Journey ────────────────────────────── */}
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4 flex-shrink-0">
           {/* Affirmation Banner */}
           <div className="bg-[#FFFBEA] border-[1.5px] border-[#F5C842] rounded-2xl p-4 flex flex-col justify-center gap-4 h-full">
@@ -155,7 +168,7 @@ export default function Dashboard() {
                 onClick={() =>
                   api
                     .get("/api/affirmations/daily")
-                    .then((r) => setAffirmation(r.data.content))
+                    .then((r) => setAffirmation(r.data?.[0]?.content || ""))
                 }
                 className="bg-[#F5C842] border-none rounded-md px-3.5 py-2 text-[10px] font-bold text-[#5C3D00] cursor-pointer flex items-center gap-1.5 hover:bg-[#E5B832] transition-colors"
               >
@@ -164,12 +177,12 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* FULL Gamification Widget */}
+          {/* ── YOUR JOURNEY CARD ───────────────────────────────────── */}
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden transform hover:scale-[1.01] transition-transform duration-300 flex flex-col">
+            {/* Card gradient header */}
             <div className="px-5 py-4 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white flex justify-between items-center relative overflow-hidden">
-              <div className="absolute -right-4 -top-4 w-24 h-24 bg-white opacity-10 rounded-full blur-xl"></div>
-              <div className="absolute right-12 -bottom-6 w-16 h-16 bg-white opacity-10 rounded-full blur-lg"></div>
-
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-white opacity-10 rounded-full blur-xl" />
+              <div className="absolute right-12 -bottom-6 w-16 h-16 bg-white opacity-10 rounded-full blur-lg" />
               <div className="flex items-center gap-3 relative z-10">
                 <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 shadow-sm">
                   <Trophy
@@ -178,7 +191,10 @@ export default function Dashboard() {
                   />
                 </div>
                 <div>
-                  <h2 className="font-bold text-base leading-tight">
+                  <h2
+                    onClick={() => navigate("/progress")}
+                    className="font-bold text-base leading-tight cursor-pointer hover:underline"
+                  >
                     Your Journey
                   </h2>
                   <p className="text-[9px] text-indigo-100 uppercase tracking-widest font-semibold mt-0.5">
@@ -193,20 +209,65 @@ export default function Dashboard() {
             </div>
 
             <div className="p-5 flex flex-col flex-1">
-              {/* Level Progress */}
-              <div className="mb-5">
-                <div className="flex justify-between items-end mb-2">
+              {/* Today's mood status banner */}
+              <div
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl mb-4 border ${
+                  todayLogged
+                    ? "bg-green-50 border-green-200"
+                    : "bg-amber-50 border-amber-200"
+                }`}
+              >
+                <span className="text-base">{todayLogged ? "😊" : "😐"}</span>
+                <div className="flex-1">
+                  <p className="text-[10px] font-bold text-gray-700">
+                    {todayLogged ? "Mood logged today!" : "Log your mood today"}
+                  </p>
+                  <p className="text-[9px] text-gray-400">
+                    {todayLogged
+                      ? `${streakDays}-day streak — keep it going!`
+                      : "Don't break your streak"}
+                  </p>
+                </div>
+                {!todayLogged && (
+                  <button
+                    onClick={() => navigate("/mood")}
+                    className="text-[9px] font-bold bg-amber-400 text-white border-none px-2 py-1 rounded-lg cursor-pointer hover:bg-amber-500 transition-colors whitespace-nowrap"
+                  >
+                    Log Now
+                  </button>
+                )}
+              </div>
+
+              {/* Streak + XP mini stats */}
+              <div className="flex gap-3 mb-4">
+                <div className="flex-1 bg-orange-50 rounded-xl px-3 py-2 flex items-center gap-2">
+                  <Flame size={14} className="text-orange-500 flex-shrink-0" />
                   <div>
-                    <span className="font-black text-gray-800 text-lg">
-                      {currentLevelXp}
-                    </span>
-                    <span className="text-xs font-bold text-gray-400">
-                      {" "}
-                      / {xpNeeded} XP
-                    </span>
+                    <p className="text-[14px] font-black text-gray-900 leading-tight tabular-nums">
+                      {streakDays}
+                    </p>
+                    <p className="text-[9px] text-gray-400">day streak</p>
                   </div>
-                  <span className="text-indigo-500 text-[9px] font-bold bg-indigo-50 px-2 py-1 rounded-md">
-                    {xpNeeded - currentLevelXp} XP to Level {level + 1}
+                </div>
+                <div className="flex-1 bg-indigo-50 rounded-xl px-3 py-2 flex items-center gap-2">
+                  <Zap size={14} className="text-indigo-500 flex-shrink-0" />
+                  <div>
+                    <p className="text-[14px] font-black text-gray-900 leading-tight tabular-nums">
+                      {currentLevelXp}
+                    </p>
+                    <p className="text-[9px] text-gray-400">XP this level</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Level XP progress bar */}
+              <div className="mb-5">
+                <div className="flex justify-between items-end mb-1.5">
+                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+                    Level Progress
+                  </span>
+                  <span className="text-indigo-500 text-[9px] font-bold bg-indigo-50 px-2 py-0.5 rounded">
+                    {xpNeeded - currentLevelXp} XP to Lvl {level + 1}
                   </span>
                 </div>
                 <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden shadow-inner relative">
@@ -214,27 +275,41 @@ export default function Dashboard() {
                     className="h-full bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full progress-bar-striped animate-stripes relative"
                     style={{ width: `${xpProgress}%` }}
                   >
-                    <div className="absolute right-0 top-0 bottom-0 w-4 bg-white/40 blur-sm"></div>
+                    <div className="absolute right-0 top-0 bottom-0 w-4 bg-white/40 blur-sm" />
                   </div>
                 </div>
               </div>
 
-              {/* Current Badges */}
+              {/* Recent Badges */}
               <div className="mt-auto">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                     Recent Badges
                   </h3>
-                  <span className="text-[9px] font-bold text-indigo-500 cursor-pointer hover:text-indigo-700">
+                  <button
+                    onClick={() => navigate("/progress")}
+                    className="text-[9px] font-bold text-indigo-500 cursor-pointer hover:text-indigo-700 bg-transparent border-none"
+                  >
                     View All
-                  </span>
+                  </button>
                 </div>
 
                 <div className="flex gap-4">
-                  <div className="flex flex-col items-center gap-2 group cursor-pointer relative">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-100 to-red-100 border-2 border-white ring-2 ring-orange-200 flex items-center justify-center shadow-md transition-all duration-300 transform group-hover:-translate-y-1 group-hover:shadow-lg">
+                  {/* 7-Day Streak badge — unlocks dynamically */}
+                  <div className="flex flex-col items-center gap-2 group cursor-pointer">
+                    <div
+                      className={`w-12 h-12 rounded-full border-2 border-white flex items-center justify-center shadow-md transition-all duration-300 transform group-hover:-translate-y-1 group-hover:shadow-lg ${
+                        streakDays >= 7
+                          ? "bg-gradient-to-br from-orange-100 to-red-100 ring-2 ring-orange-200"
+                          : "bg-gray-100 ring-2 ring-gray-200 opacity-50 grayscale"
+                      }`}
+                    >
                       <Flame
-                        className="text-orange-500 drop-shadow-sm"
+                        className={
+                          streakDays >= 7
+                            ? "text-orange-500 drop-shadow-sm"
+                            : "text-gray-400"
+                        }
                         size={20}
                       />
                     </div>
@@ -245,7 +320,8 @@ export default function Dashboard() {
                     </span>
                   </div>
 
-                  <div className="flex flex-col items-center gap-2 group cursor-pointer relative">
+                  {/* Sleep Master badge */}
+                  <div className="flex flex-col items-center gap-2 group cursor-pointer">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 border-2 border-white ring-2 ring-blue-200 flex items-center justify-center shadow-md transition-all duration-300 transform group-hover:-translate-y-1 group-hover:shadow-lg">
                       <Moon
                         className="text-blue-500 drop-shadow-sm"
@@ -259,8 +335,9 @@ export default function Dashboard() {
                     </span>
                   </div>
 
-                  <div className="flex flex-col items-center gap-2 group cursor-pointer relative opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-300">
-                    <div className="w-12 h-12 rounded-full bg-gray-100 border-2 border-white ring-2 ring-gray-200 flex items-center justify-center shadow-sm border-dashed">
+                  {/* Locked badge */}
+                  <div className="flex flex-col items-center gap-2 group cursor-pointer opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+                    <div className="w-12 h-12 rounded-full bg-gray-100 border-2 border-white ring-2 ring-gray-200 flex items-center justify-center shadow-sm">
                       <Lock className="text-gray-400" size={16} />
                     </div>
                     <span className="text-[9px] font-bold text-gray-400 text-center leading-tight">
@@ -275,7 +352,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Row: Mood, Goals, Journal */}
+        {/* ── Mood, Goals, Journal ──────────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 flex-shrink-0">
           {/* Mood Card */}
           <div className="bg-white rounded-xl border border-[#F48FB1] shadow-sm overflow-hidden flex flex-col">
@@ -330,13 +407,13 @@ export default function Dashboard() {
               >
                 Save Mood{" "}
                 <span className="text-[9px] bg-white/20 px-1.5 py-0.5 rounded ml-1">
-                  +25 XP
+                  +10 XP
                 </span>
               </button>
             </div>
           </div>
 
-          {/* Goals Card (Active Quests Design) */}
+          {/* Goals Card */}
           <div className="bg-white rounded-xl border border-[#81C784] shadow-sm overflow-hidden flex flex-col">
             <div
               onClick={() => navigate("/goals")}
@@ -367,7 +444,7 @@ export default function Dashboard() {
                       key={g.id}
                       className="bg-white rounded-xl p-2.5 border border-gray-100 shadow-sm hover:border-indigo-200 transition-colors flex items-center gap-3 relative overflow-hidden group cursor-pointer"
                     >
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500"></div>
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500" />
                       <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 transition-colors">
                         {idx % 2 === 0 ? (
                           <Activity className="text-indigo-500" size={16} />
@@ -389,7 +466,7 @@ export default function Dashboard() {
                             <div
                               className="h-full bg-indigo-400 rounded-full"
                               style={{ width: `${g.progress || 0}%` }}
-                            ></div>
+                            />
                           </div>
                           <span className="text-[9px] font-bold text-indigo-500 w-6 text-right">
                             {g.progress === 100 ? (
@@ -446,7 +523,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Row: Resources, Crisis */}
+        {/* ── Resources + Crisis ────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-[60fr_40fr] gap-4 flex-shrink-0">
           {/* Resources */}
           <div className="bg-white rounded-xl border border-[#64B5F6] shadow-sm overflow-hidden">

@@ -353,7 +353,7 @@ export default function Journal() {
 
                       {entry.photourl && (
                         <img
-                          src={entry.photourl}
+                          src={entry.photo_url}
                           alt="Journal attachment"
                           className="w-full h-[60px] object-cover rounded-lg mb-2"
                           loading="lazy"

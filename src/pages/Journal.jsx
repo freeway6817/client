@@ -125,7 +125,7 @@ export default function Journal() {
 
   // ── Entry type badge ──────────────────────────────────────
   const getEntryBadge = (entry) => {
-    if (entry.photo_url)
+    if (entry.photourl)
       return { icon: "🖼️", label: "Photo", color: "#1976D2", bg: "#E3F2FD" };
     return { icon: "✍️", label: "Text", color: "#43A047", bg: "#E8F5E9" };
   };
@@ -351,9 +351,9 @@ export default function Journal() {
                         {entry.content}
                       </p>
 
-                      {entry.photo_url && (
+                      {entry.photourl && (
                         <img
-                          src={entry.photo_url}
+                          src={entry.photourl}
                           alt="Journal attachment"
                           className="w-full h-[60px] object-cover rounded-lg mb-2"
                           loading="lazy"
@@ -362,7 +362,7 @@ export default function Journal() {
 
                       <div className="flex items-center justify-between">
                         <span className="text-[8px] text-gray-400">
-                          {new Date(entry.created_at).toLocaleDateString(
+                          {new Date(entry.createdat).toLocaleDateString(
                             "en-MY",
                             {
                               weekday: "short",

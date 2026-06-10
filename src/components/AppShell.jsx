@@ -1,3 +1,4 @@
+// client/src/components/AppShell.jsx
 import { useState, useEffect } from "react";
 import Topnav from "./TopNav";
 import Footer from "./Footer";
@@ -16,13 +17,10 @@ export default function AppShell({ children }) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Close mobile nav when clicking outside the dropdown
   useEffect(() => {
     if (!mobileNavOpen) return;
     const handleClickOutside = (e) => {
-      if (!e.target.closest("nav")) {
-        setMobileNavOpen(false);
-      }
+      if (!e.target.closest("nav")) setMobileNavOpen(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -30,16 +28,17 @@ export default function AppShell({ children }) {
 
   return (
     <div className="flex flex-col h-screen bg-theme-light font-sans overflow-hidden">
-      {/* TopNav handles ALL navigation — both desktop inline links and mobile dropdown */}
       <Topnav
         isMobile={isMobile}
         mobileNavOpen={mobileNavOpen}
         setMobileNavOpen={setMobileNavOpen}
       />
 
-      {/* Main Content Area — full width, no sidebar */}
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-        {children}
+      {/* Main Content Area — scrollable, max-width capped for 1920p */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-10 xl:px-16 py-4 sm:py-6 lg:py-8">
+          {children}
+        </div>
       </main>
 
       <Footer compact={true} />

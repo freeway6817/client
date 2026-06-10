@@ -15,10 +15,49 @@ import {
   CheckCircle,
   ChevronRight,
   Zap,
+  FileText,
+  Play,
+  Mic,
+  BarChart2,
+  Smile,
+  Meh,
+  Phone,
 } from "lucide-react";
 
 const EMOJIS = ["😭", "😢", "😐", "🙂", "😁"];
 const LABELS = ["Awful", "Bad", "Okay", "Good", "Great"];
+
+const RESOURCE_TYPE_META = {
+  article: {
+    label: "ARTICLE",
+    color: "#2196F3",
+    bg: "#E3F2FD",
+    badgeBg: "#2196F3",
+    Icon: FileText,
+  },
+  video: {
+    label: "VIDEO",
+    color: "#F44336",
+    bg: "#FFEBEE",
+    badgeBg: "#F44336",
+    Icon: Play,
+  },
+  podcast: {
+    label: "PODCAST",
+    color: "#9C27B0",
+    bg: "#F3E5F5",
+    badgeBg: "#9C27B0",
+    Icon: Mic,
+  },
+  infographic: {
+    label: "INFOGRAPHIC",
+    color: "#4CAF50",
+    bg: "#E8F5E9",
+    badgeBg: "#4CAF50",
+    Icon: BarChart2,
+  },
+};
+
 const today = new Date().toLocaleDateString("en-MY", {
   weekday: "long",
   year: "numeric",
@@ -37,7 +76,6 @@ export default function Dashboard() {
   const [moodScore, setMoodScore] = useState(5);
   const [journalContent, setJournalContent] = useState("");
 
-  // Gamification state — fetched from backend
   const [xp, setXp] = useState(0);
   const [streakDays, setStreakDays] = useState(0);
   const [todayLogged, setTodayLogged] = useState(false);
@@ -73,7 +111,6 @@ export default function Dashboard() {
       formData.append("score", moodScore);
       formData.append("label", LABELS[selectedEmoji]);
       formData.append("note", moodNote);
-
       await api.post("/api/moods", formData);
       toast.success("Mood saved! +10 XP");
       setXp((prev) => prev + 10);
@@ -95,7 +132,6 @@ export default function Dashboard() {
         "prompt",
         "What is one thing you are grateful for today?",
       );
-
       await api.post("/api/journal", formData);
       toast.success("Journal entry saved! +50 XP");
       setXp((prev) => prev + 50);
@@ -112,9 +148,7 @@ export default function Dashboard() {
           background-image: linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent);
           background-size: 1rem 1rem;
         }
-        .animate-stripes {
-          animation: progress-stripes 1s linear infinite;
-        }
+        .animate-stripes { animation: progress-stripes 1s linear infinite; }
         @keyframes progress-stripes {
           from { background-position: 1rem 0; }
           to   { background-position: 0 0; }
@@ -122,14 +156,12 @@ export default function Dashboard() {
       `}</style>
 
       <div className="flex flex-col gap-4 h-full overflow-y-auto pb-6">
-        {/* ── Header ────────────────────────────────────────────────── */}
+        {/* ── Header ─────────────────────────────────────────────────── */}
         <div className="flex-shrink-0 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3 sm:gap-0">
           <div>
             <h1 className="text-[17px] font-bold text-navy">Dashboard</h1>
             <p className="text-[10px] text-gray-500 mt-0.5">{today}</p>
           </div>
-
-          {/* Gamification pill */}
           <div className="bg-white px-3 py-1.5 rounded-full border border-gray-200 shadow-sm flex items-center gap-3 w-fit">
             <div className="flex items-center gap-1.5 text-[11px] font-bold text-navy">
               <Trophy size={14} className="text-yellow-500" />
@@ -148,13 +180,13 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── Affirmation + Your Journey ────────────────────────────── */}
+        {/* ── Affirmation + Your Journey ─────────────────────────────── */}
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4 flex-shrink-0">
           {/* Affirmation Banner */}
           <div className="bg-[#FFFBEA] border-[1.5px] border-[#F5C842] rounded-2xl p-4 flex flex-col justify-center gap-4 h-full">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-[#F5C842] flex items-center justify-center text-2xl flex-shrink-0">
-                ✨
+              <div className="w-12 h-12 rounded-full bg-[#F5C842] flex items-center justify-center flex-shrink-0">
+                <Star size={22} className="text-[#5C3D00]" />
               </div>
               <div className="flex-1">
                 <div className="text-[10px] font-bold text-[#B8860B] uppercase tracking-[0.5px] mb-1.5">
@@ -177,9 +209,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* ── YOUR JOURNEY CARD ───────────────────────────────────── */}
+          {/* Your Journey Card */}
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden transform hover:scale-[1.01] transition-transform duration-300 flex flex-col">
-            {/* Card gradient header */}
             <div className="px-5 py-4 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white flex justify-between items-center relative overflow-hidden">
               <div className="absolute -right-4 -top-4 w-24 h-24 bg-white opacity-10 rounded-full blur-xl" />
               <div className="absolute right-12 -bottom-6 w-16 h-16 bg-white opacity-10 rounded-full blur-lg" />
@@ -209,7 +240,7 @@ export default function Dashboard() {
             </div>
 
             <div className="p-5 flex flex-col flex-1">
-              {/* Today's mood status banner */}
+              {/* Today mood status */}
               <div
                 className={`flex items-center gap-2.5 px-3 py-2 rounded-xl mb-4 border ${
                   todayLogged
@@ -217,7 +248,15 @@ export default function Dashboard() {
                     : "bg-amber-50 border-amber-200"
                 }`}
               >
-                <span className="text-base">{todayLogged ? "😊" : "😐"}</span>
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${todayLogged ? "bg-green-100" : "bg-amber-100"}`}
+                >
+                  {todayLogged ? (
+                    <Smile size={15} className="text-green-600" />
+                  ) : (
+                    <Meh size={15} className="text-amber-500" />
+                  )}
+                </div>
                 <div className="flex-1">
                   <p className="text-[10px] font-bold text-gray-700">
                     {todayLogged ? "Mood logged today!" : "Log your mood today"}
@@ -260,7 +299,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Level XP progress bar */}
+              {/* XP progress bar */}
               <div className="mb-5">
                 <div className="flex justify-between items-end mb-1.5">
                   <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
@@ -293,9 +332,7 @@ export default function Dashboard() {
                     View All
                   </button>
                 </div>
-
                 <div className="flex gap-4">
-                  {/* 7-Day Streak badge — unlocks dynamically */}
                   <div className="flex flex-col items-center gap-2 group cursor-pointer">
                     <div
                       className={`w-12 h-12 rounded-full border-2 border-white flex items-center justify-center shadow-md transition-all duration-300 transform group-hover:-translate-y-1 group-hover:shadow-lg ${
@@ -319,8 +356,6 @@ export default function Dashboard() {
                       Streak
                     </span>
                   </div>
-
-                  {/* Sleep Master badge */}
                   <div className="flex flex-col items-center gap-2 group cursor-pointer">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 border-2 border-white ring-2 ring-blue-200 flex items-center justify-center shadow-md transition-all duration-300 transform group-hover:-translate-y-1 group-hover:shadow-lg">
                       <Moon
@@ -334,8 +369,6 @@ export default function Dashboard() {
                       Master
                     </span>
                   </div>
-
-                  {/* Locked badge */}
                   <div className="flex flex-col items-center gap-2 group cursor-pointer opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-300">
                     <div className="w-12 h-12 rounded-full bg-gray-100 border-2 border-white ring-2 ring-gray-200 flex items-center justify-center shadow-sm">
                       <Lock className="text-gray-400" size={16} />
@@ -523,7 +556,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── Resources + Crisis ────────────────────────────────────── */}
+        {/* ── Resources + Crisis ──────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-[60fr_40fr] gap-4 flex-shrink-0">
           {/* Resources */}
           <div className="bg-white rounded-xl border border-[#64B5F6] shadow-sm overflow-hidden">
@@ -545,45 +578,38 @@ export default function Dashboard() {
               </button>
             </div>
             <div className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {resources.map((r) => (
-                <div
-                  key={r.id}
-                  className="border border-gray-200 rounded-lg overflow-hidden flex sm:flex-col hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => navigate("/resources")}
-                >
+              {resources.slice(0, 3).map((r) => {
+                const meta =
+                  RESOURCE_TYPE_META[r.type] || RESOURCE_TYPE_META.article;
+                const { Icon } = meta;
+                return (
                   <div
-                    className={`w-16 sm:w-auto h-auto sm:h-[50px] flex items-center justify-center text-2xl flex-shrink-0 ${
-                      r.type === "article"
-                        ? "bg-[#E3F2FD]"
-                        : r.type === "video"
-                          ? "bg-[#FFEBEE]"
-                          : "bg-[#E8F5E9]"
-                    }`}
+                    key={r.id}
+                    className="border border-gray-200 rounded-lg overflow-hidden flex sm:flex-col hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() =>
+                      navigate(`/resources?type=${r.type || "article"}`)
+                    }
                   >
-                    {r.type === "article"
-                      ? "📄"
-                      : r.type === "video"
-                        ? "▶️"
-                        : "📊"}
-                  </div>
-                  <div className="p-2.5 flex flex-col flex-1 justify-center">
-                    <span
-                      className={`text-[8px] font-bold text-white px-1.5 py-0.5 rounded w-max mb-1.5 ${
-                        r.type === "article"
-                          ? "bg-[#2196F3]"
-                          : r.type === "video"
-                            ? "bg-[#F44336]"
-                            : "bg-[#4CAF50]"
-                      }`}
+                    <div
+                      className="w-16 sm:w-auto h-auto sm:h-[50px] flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: meta.bg }}
                     >
-                      {r.type?.toUpperCase() || "ARTICLE"}
-                    </span>
-                    <p className="text-[9px] font-bold mt-0.5 text-gray-800 leading-tight line-clamp-2">
-                      {r.title}
-                    </p>
+                      <Icon size={22} style={{ color: meta.color }} />
+                    </div>
+                    <div className="p-2.5 flex flex-col flex-1 justify-center">
+                      <span
+                        className="text-[8px] font-bold text-white px-1.5 py-0.5 rounded w-max mb-1.5"
+                        style={{ backgroundColor: meta.badgeBg }}
+                      >
+                        {meta.label}
+                      </span>
+                      <p className="text-[9px] font-bold mt-0.5 text-gray-800 leading-tight line-clamp-2">
+                        {r.title}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -614,8 +640,8 @@ export default function Dashboard() {
                   key={h.name}
                   className="bg-[#FFF5F5] border border-[#EF9A9A] rounded-lg px-3 py-2 flex items-center gap-3 hover:bg-[#FFEBEE] transition-colors cursor-pointer"
                 >
-                  <div className="w-8 h-8 bg-[#FFCDD2] rounded-full flex items-center justify-center text-sm flex-shrink-0">
-                    📞
+                  <div className="w-8 h-8 bg-[#FFCDD2] rounded-full flex items-center justify-center flex-shrink-0">
+                    <Phone size={14} className="text-[#C62828]" />
                   </div>
                   <div className="flex-1">
                     <p className="text-[10px] font-bold text-gray-800">

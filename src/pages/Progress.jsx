@@ -12,6 +12,16 @@ import {
   Zap,
   Target,
   BarChart2,
+  Sprout,
+  Medal,
+  Moon,
+  BookOpen,
+  Hash,
+  Check,
+  X,
+  SmilePlus,
+  Smile,
+  Minus,
 } from "lucide-react";
 
 const MILESTONES = [3, 7, 14, 30, 60];
@@ -25,33 +35,38 @@ const LEVEL_NAMES = [
 ];
 
 const ACHIEVEMENTS = [
-  { id: "first", emoji: "🌱", name: "First Step", desc: "Log your first mood" },
-  { id: "3day", emoji: "🔥", name: "3-Day Streak", desc: "3 days in a row" },
+  {
+    id: "first",
+    Icon: Sprout,
+    name: "First Step",
+    desc: "Log your first mood",
+  },
+  { id: "3day", Icon: Flame, name: "3-Day Streak", desc: "3 days in a row" },
   {
     id: "7day",
-    emoji: "🏅",
+    Icon: Medal,
     name: "Week Warrior",
     desc: "7-day streak",
     streakNeeded: 7,
   },
-  { id: "happy", emoji: "😊", name: "Happy Days", desc: "Log happy 5 times" },
-  { id: "night", emoji: "🌙", name: "Night Owl", desc: "Log after 10pm" },
+  { id: "happy", Icon: Smile, name: "Happy Days", desc: "Log happy 5 times" },
+  { id: "night", Icon: Moon, name: "Night Owl", desc: "Log after 10pm" },
   {
     id: "30day",
-    emoji: "🌟",
+    Icon: Star,
     name: "Month Master",
     desc: "30-day streak",
     streakNeeded: 30,
   },
   {
     id: "journal",
-    emoji: "📖",
+    Icon: BookOpen,
     name: "Journaler",
     desc: "Save 5 journal entries",
   },
   {
     id: "100",
-    emoji: "💯",
+    Icon: Hash,
     name: "Centurion",
     desc: "100 total logs",
     logsNeeded: 100,
@@ -60,21 +75,21 @@ const ACHIEVEMENTS = [
 
 const WEEKLY_CHALLENGES = [
   {
-    emoji: "📅",
+    Icon: Target,
     name: "Log 5 days this week",
     current: 0,
     total: 5,
     reward: 50,
   },
   {
-    emoji: "😢",
+    Icon: Minus,
     name: "Track a difficult emotion",
     current: 0,
     total: 1,
     reward: 30,
   },
   {
-    emoji: "🌅",
+    Icon: SmilePlus,
     name: "Morning log before 9am",
     current: 0,
     total: 3,
@@ -137,6 +152,15 @@ export default function Progress() {
     100,
   );
 
+  const streakLabel =
+    streakDays >= 14
+      ? "On fire!"
+      : streakDays >= 7
+        ? "Consistent"
+        : streakDays >= 3
+          ? "Building"
+          : "Just started";
+
   const isEarned = (a) => {
     if (a.streakNeeded) return streakDays >= a.streakNeeded;
     if (a.logsNeeded) return totalLogs >= a.logsNeeded;
@@ -148,7 +172,7 @@ export default function Progress() {
   return (
     <AppShell>
       <div className="flex flex-col gap-4 h-full overflow-y-auto pb-6">
-        {/* ── Header ──────────────────────────────────────────────── */}
+        {/* ── Header ─────────────────────────────────────────────── */}
         <div className="flex-shrink-0 flex items-center justify-between">
           <div>
             <h1 className="text-[17px] font-bold text-navy">Your Progress</h1>
@@ -164,8 +188,15 @@ export default function Progress() {
                 : "bg-[#1976D2] text-white hover:bg-[#1565C0]"
             }`}
           >
-            {todayLogged ? "✓ Logged Today" : "Log Today's Mood"}
-            {!todayLogged && <ChevronRight size={13} />}
+            {todayLogged ? (
+              <>
+                <Check size={12} /> Logged Today
+              </>
+            ) : (
+              <>
+                Log Today's Mood <ChevronRight size={13} />
+              </>
+            )}
           </button>
         </div>
 
@@ -178,11 +209,14 @@ export default function Progress() {
           }`}
         >
           <div
-            className={`w-10 h-10 rounded-full flex items-center justify-center text-xl flex-shrink-0 ${
+            className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
               todayLogged ? "bg-green-100" : "bg-amber-100"
             }`}
           >
-            {todayLogged ? "😊" : "😐"}
+            <Smile
+              size={20}
+              className={todayLogged ? "text-green-600" : "text-amber-500"}
+            />
           </div>
           <div className="flex-1">
             <p className="text-[12px] font-bold text-gray-800">
@@ -201,7 +235,7 @@ export default function Progress() {
                 : "bg-amber-100 text-amber-700"
             }`}
           >
-            {todayLogged ? "Done ✓" : "Pending"}
+            {todayLogged ? "Done" : "Pending"}
           </span>
         </div>
 
@@ -220,13 +254,7 @@ export default function Progress() {
                 <p className="text-[9px] text-gray-400">Keep logging daily</p>
               </div>
               <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-600">
-                {streakDays >= 14
-                  ? "🔥 On fire!"
-                  : streakDays >= 7
-                    ? "⚡ Consistent"
-                    : streakDays >= 3
-                      ? "🌱 Building"
-                      : "👋 Just started"}
+                {streakLabel}
               </span>
             </div>
 
@@ -240,8 +268,8 @@ export default function Progress() {
             </div>
             <p className="text-[10px] text-gray-400 mb-4">
               {streakDays >= MILESTONES[MILESTONES.length - 1]
-                ? "🎉 You've hit all streak milestones!"
-                : `${nextMilestone - streakDays} more day${nextMilestone - streakDays > 1 ? "s" : ""} to your ${nextMilestone}-day badge 🏅`}
+                ? "You've hit all streak milestones!"
+                : `${nextMilestone - streakDays} more day${nextMilestone - streakDays > 1 ? "s" : ""} to your ${nextMilestone}-day badge`}
             </p>
 
             {/* Milestone progress bar */}
@@ -275,24 +303,26 @@ export default function Progress() {
               {weekDays.map((recorded, i) => {
                 const isToday = i === weekDays.length - 1;
                 let cls =
-                  "flex-1 aspect-square max-w-[40px] rounded-xl flex items-center justify-center text-sm transition-all ";
+                  "flex-1 aspect-square max-w-[40px] rounded-xl flex items-center justify-center transition-all ";
                 if (isToday && todayLogged)
                   cls += "bg-green-100 ring-2 ring-green-400";
                 else if (isToday)
                   cls += "bg-gray-50 border-2 border-dashed border-gray-300";
                 else if (recorded) cls += "bg-blue-50 ring-2 ring-[#1976D2]/30";
                 else cls += "bg-gray-50 opacity-40";
+
                 return (
                   <div key={i} className="flex flex-col items-center gap-1">
                     <div className={cls}>
                       {(recorded && !isToday) || (isToday && todayLogged) ? (
-                        <span className="text-green-600 font-bold text-[10px]">
-                          ✓
-                        </span>
+                        <Check
+                          size={12}
+                          className="text-green-600 stroke-[3]"
+                        />
                       ) : isToday ? (
-                        <span className="text-gray-300">·</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-300 block" />
                       ) : (
-                        <span className="text-gray-300 text-[10px]">✗</span>
+                        <X size={10} className="text-gray-300 stroke-[2.5]" />
                       )}
                     </div>
                     <span
@@ -394,22 +424,24 @@ export default function Progress() {
             <div className="grid grid-cols-4 gap-3">
               {ACHIEVEMENTS.map((a) => {
                 const earned = isEarned(a);
+                const AIcon = a.Icon;
                 return (
                   <div
                     key={a.id}
                     title={a.desc}
-                    className={`flex flex-col items-center gap-1 ${
-                      earned ? "" : "opacity-40 grayscale"
-                    }`}
+                    className={`flex flex-col items-center gap-1 ${earned ? "" : "opacity-40 grayscale"}`}
                   >
                     <div
-                      className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl relative ${
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center relative ${
                         earned
                           ? "bg-yellow-50 ring-2 ring-yellow-300"
                           : "bg-gray-100"
                       }`}
                     >
-                      {a.emoji}
+                      <AIcon
+                        size={20}
+                        className={earned ? "text-yellow-500" : "text-gray-400"}
+                      />
                       {!earned && (
                         <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-white rounded-full border border-gray-200 flex items-center justify-center">
                           <Lock size={8} className="text-gray-400" />
@@ -451,12 +483,15 @@ export default function Progress() {
               {WEEKLY_CHALLENGES.map((c) => {
                 const pct = Math.round((c.current / c.total) * 100);
                 const done = c.current >= c.total;
+                const CIcon = c.Icon;
                 return (
                   <div
                     key={c.name}
                     className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3"
                   >
-                    <span className="text-xl flex-shrink-0">{c.emoji}</span>
+                    <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
+                      <CIcon size={15} className="text-orange-500" />
+                    </div>
                     <div className="flex-1">
                       <p className="text-[11px] font-bold text-gray-800">
                         {c.name}

@@ -1,5 +1,5 @@
 // client/src/pages/Journal.jsx
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import AppShell from "../components/AppShell";
 import api from "../api/axios";
 import toast from "react-hot-toast";
@@ -43,17 +43,9 @@ export default function Journal() {
   const [content, setContent] = useState("");
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
-  const [mode, setMode] = useState("text"); // 'text' | 'creative'
   const [loading, setLoading] = useState(false);
-  const [drawTool, setDrawTool] = useState("pen");
-  const [penColor, setPenColor] = useState("#7E57C2");
-  const [history, setHistory] = useState([]);
 
   const fileRef = useRef(null);
-  const canvasRef = useRef(null);
-  const isDrawing = useRef(false);
-  const lastPos = useRef({ x: 0, y: 0 });
-  const canvasInitialized = useRef(false);
 
   // ── Fetch entries ──────────────────────────────────────────
   const fetchEntries = async () => {
@@ -69,126 +61,7 @@ export default function Journal() {
     fetchEntries();
   }, []);
 
-  // ── Canvas: sync internal pixel size to displayed CSS size ──
-  const syncCanvasSize = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    if (canvas.width !== rect.width || canvas.height !== rect.height) {
-      const snapshot = canvas.toDataURL();
-      canvas.width = rect.width;
-      canvas.height = rect.height;
-      const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      if (snapshot && history.length > 0) {
-        const img = new Image();
-        img.src = snapshot;
-        img.onload = () =>
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      }
-    }
-  }, [history.length]);
-
-  // ── Canvas: initialize white background on first render ──────
-  useEffect(() => {
-    if (mode !== "creative") return;
-    const raf = requestAnimationFrame(() => {
-      const canvas = canvasRef.current;
-      if (!canvas || canvasInitialized.current) return;
-      syncCanvasSize();
-      const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      canvasInitialized.current = true;
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [mode, syncCanvasSize]);
-
-  // ── Canvas: handle window resize ─────────────────────────────
-  useEffect(() => {
-    if (mode !== "creative") return;
-    const observer = new ResizeObserver(syncCanvasSize);
-    if (canvasRef.current) observer.observe(canvasRef.current);
-    return () => observer.disconnect();
-  }, [mode, syncCanvasSize]);
-
-  // ── Canvas: get mouse/touch position relative to canvas ──────
-  const getPos = (e) => {
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY,
-    };
-  };
-
-  const startDraw = (e) => {
-    e.preventDefault();
-    isDrawing.current = true;
-    lastPos.current = getPos(e);
-    setHistory((prev) => [...prev, canvasRef.current.toDataURL()]);
-  };
-
-  const draw = (e) => {
-    e.preventDefault();
-    if (!isDrawing.current) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    const pos = getPos(e);
-
-    ctx.lineWidth = drawTool === "eraser" ? 24 : 3;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.strokeStyle = drawTool === "eraser" ? "#FFFFFF" : penColor;
-    ctx.globalCompositeOperation =
-      drawTool === "eraser" ? "destination-out" : "source-over";
-
-    ctx.beginPath();
-    ctx.moveTo(lastPos.current.x, lastPos.current.y);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
-    lastPos.current = pos;
-  };
-
-  const endDraw = (e) => {
-    if (e) e.preventDefault();
-    isDrawing.current = false;
-    if (canvasRef.current) {
-      canvasRef.current.getContext("2d").globalCompositeOperation =
-        "source-over";
-    }
-  };
-
-  const undoDraw = () => {
-    if (history.length === 0) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    const prev = history[history.length - 1];
-    const img = new Image();
-    img.src = prev;
-    img.onload = () => {
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0);
-    };
-    setHistory((h) => h.slice(0, -1));
-  };
-
-  const clearCanvas = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    setHistory([]);
-  };
-
-  // ── Photo upload ──────────────────────────────────────────────
+  // ── Photo upload ──────────────────────────────────────────
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -202,40 +75,23 @@ export default function Journal() {
 
   const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
 
-  // ── Save entry ────────────────────────────────────────────────
+  // ── Save entry ────────────────────────────────────────────
   const handleSave = async () => {
-    if (mode === "text" && !content.trim()) {
+    if (!content.trim()) {
       toast.error("Write something before saving");
       return;
     }
-    if (mode === "creative" && history.length === 0 && !content.trim()) {
-      toast.error("Draw or write something before saving");
-      return;
-    }
     setLoading(true);
-
     try {
       const formData = new FormData();
-      formData.append("content", content.trim() || "Drawing entry");
+      formData.append("content", content.trim());
       if (selectedPrompt) {
         formData.append(
           "prompt",
           `Prompt #${selectedPrompt.id} • ${selectedPrompt.tag} — ${selectedPrompt.text}`,
         );
       }
-
-      if (mode === "creative") {
-        await new Promise((resolve, reject) => {
-          canvasRef.current.toBlob((blob) => {
-            if (blob) {
-              formData.append("photo", blob, "drawing.png");
-              resolve();
-            } else {
-              reject(new Error("Failed to generate image from canvas"));
-            }
-          }, "image/png");
-        });
-      } else if (photo) {
+      if (photo) {
         formData.append("photo", photo);
       }
 
@@ -248,8 +104,6 @@ export default function Journal() {
       setSelectedPrompt(null);
       setPhoto(null);
       setPhotoPreview(null);
-      clearCanvas();
-      canvasInitialized.current = false;
       fetchEntries();
     } catch {
       toast.error("Failed to save entry");
@@ -258,7 +112,7 @@ export default function Journal() {
     }
   };
 
-  // ── Delete entry ──────────────────────────────────────────────
+  // ── Delete entry ──────────────────────────────────────────
   const handleDelete = async (id) => {
     try {
       await api.delete(`/api/journal/${id}`);
@@ -269,37 +123,34 @@ export default function Journal() {
     }
   };
 
-  // ── Entry type badge ──────────────────────────────────────────
+  // ── Entry type badge ──────────────────────────────────────
   const getEntryBadge = (entry) => {
-    if (entry.photo_url && entry.content === "Drawing entry")
-      return { icon: "🖌️", label: "Drawing", color: "#9575CD", bg: "#EDE7F6" };
     if (entry.photo_url)
       return { icon: "🖼️", label: "Photo", color: "#1976D2", bg: "#E3F2FD" };
     return { icon: "✍️", label: "Text", color: "#43A047", bg: "#E8F5E9" };
   };
 
-  // ─── Render ───────────────────────────────────────────────────
+  // ─── Render ───────────────────────────────────────────────
   return (
     <AppShell>
       <div className="flex flex-col gap-3 h-full">
         {/* Page header */}
         <div className="flex-shrink-0">
-          <h1 className="text-[17px] font-bold text-navy">📓 Journal</h1>
+          <h1 className="text-[17px] font-bold text-navy">Journal</h1>
           <p className="text-[10px] text-gray-500 mt-0.5">
             Reflect, write, and express your thoughts freely
           </p>
         </div>
 
-        {/* ── Two-column layout: stacks on mobile, side-by-side on md+ ── */}
+        {/* ── Two-column layout ─────────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-[1fr_320px] gap-3 flex-1 overflow-auto min-h-0">
-          {/* ── LEFT: Prompts + Write ─────────────────────────── */}
+          {/* ── LEFT: Prompts + Write ──────────────────────────── */}
           <div className="flex flex-col gap-3 overflow-y-auto pr-1">
             {/* Today's Journal Prompts */}
             <div className="bg-white rounded-xl border border-[#B39DDB] flex-shrink-0">
               <div className="px-3.5 py-2.5 text-[12px] font-bold text-[#512DA8] bg-[#EDE7F6] rounded-t-xl">
-                💬 Today's Journal Prompts
+                Today's Journal Prompts
               </div>
-              {/* ── Prompts grid: 1 col on mobile, 2 cols on sm+ ── */}
               <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {PROMPTS.map((p) => {
                   const colors = TAG_COLORS[p.tag];
@@ -344,7 +195,7 @@ export default function Journal() {
               {/* Header */}
               <div className="flex items-center justify-between px-3.5 py-2.5 bg-[#EDE7F6] rounded-t-xl">
                 <span className="text-[12px] font-bold text-[#512DA8]">
-                  ✍️ Write Your Entry —{" "}
+                  Write Your Entry —{" "}
                   {new Date().toLocaleDateString("en-MY", {
                     weekday: "short",
                     day: "numeric",
@@ -355,27 +206,6 @@ export default function Journal() {
                 <span className="text-[9px] text-gray-500 tabular-nums">
                   {wordCount} {wordCount === 1 ? "word" : "words"}
                 </span>
-              </div>
-
-              {/* Mode tabs */}
-              <div className="flex border-b border-gray-100">
-                {[
-                  ["text", "✏️ Write"],
-                  ["creative", "🎨 Creative Mode"],
-                ].map(([m, label]) => (
-                  <button
-                    key={m}
-                    onClick={() => setMode(m)}
-                    className={`flex-1 py-2 text-[10px] font-bold border-none cursor-pointer transition-colors
-                      ${
-                        mode === m
-                          ? "bg-[#EDE7F6] text-[#512DA8]"
-                          : "bg-white text-gray-400 hover:bg-gray-50"
-                      }`}
-                  >
-                    {label}
-                  </button>
-                ))}
               </div>
 
               <div className="p-3">
@@ -410,156 +240,64 @@ export default function Journal() {
                   </div>
                 )}
 
-                {/* ── TEXT MODE ─────────────────────────────── */}
-                {mode === "text" && (
-                  <>
-                    <textarea
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
-                      rows={7}
-                      placeholder={
-                        selectedPrompt
-                          ? `Respond to the prompt: "${selectedPrompt.text.substring(0, 60)}..."`
-                          : "Start writing your thoughts freely..."
-                      }
-                      className="w-full bg-[#FAF8FF] border border-[#B39DDB] rounded-lg px-3 py-2.5 text-[10px] resize-none font-sans leading-[1.7] mb-3 focus:outline-none focus:ring-2 focus:ring-[#9575CD]/30"
-                    />
+                {/* Textarea */}
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  rows={7}
+                  placeholder={
+                    selectedPrompt
+                      ? `Respond to the prompt: "${selectedPrompt.text.substring(0, 60)}..."`
+                      : "Start writing your thoughts freely..."
+                  }
+                  className="w-full bg-[#FAF8FF] border border-[#B39DDB] rounded-lg px-3 py-2.5 text-[10px] resize-none font-sans leading-[1.7] mb-3 focus:outline-none focus:ring-2 focus:ring-[#9575CD]/30"
+                />
 
-                    {/* Photo upload */}
-                    <div className="mb-3">
-                      <p className="text-[9px] font-bold text-gray-600 mb-1.5">
-                        🖼️ Attach Photo{" "}
-                        <span className="text-gray-400 font-normal">
-                          (optional)
-                        </span>
-                      </p>
-                      <div
-                        onClick={() => fileRef.current?.click()}
-                        className="border-2 border-dashed border-[#B39DDB] rounded-lg bg-[#FAF8FF] h-[64px] flex items-center justify-center cursor-pointer text-[#7E57C2] text-[10px] gap-2 hover:bg-[#EDE7F6] transition-colors overflow-hidden"
-                      >
-                        {photoPreview ? (
-                          <div className="relative w-full h-full">
-                            <img
-                              src={photoPreview}
-                              alt="preview"
-                              className="w-full h-full object-contain"
-                            />
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPhoto(null);
-                                setPhotoPreview(null);
-                              }}
-                              className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5 border-none cursor-pointer"
-                              aria-label="Remove photo"
-                            >
-                              <X size={10} />
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <Camera size={14} />
-                            <span>Upload Photo — JPG, PNG, GIF up to 10MB</span>
-                          </>
-                        )}
-                      </div>
-                      <input
-                        ref={fileRef}
-                        type="file"
-                        accept="image/jpeg,image/png,image/gif"
-                        className="hidden"
-                        onChange={handlePhotoChange}
-                      />
-                    </div>
-                  </>
-                )}
-
-                {/* ── CREATIVE MODE ────────────────────────── */}
-                <div className={mode === "creative" ? "block" : "hidden"}>
-                  <textarea
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    rows={2}
-                    placeholder="Add a caption for your drawing (optional)..."
-                    className="w-full bg-[#FAF8FF] border border-[#B39DDB] rounded-lg px-3 py-2 text-[10px] resize-none font-sans mb-3 focus:outline-none focus:ring-2 focus:ring-[#9575CD]/30"
-                  />
-
-                  {/* Toolbar */}
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <div className="flex gap-1">
-                      {[
-                        ["pen", "✏️ Pen"],
-                        ["eraser", "◻ Eraser"],
-                      ].map(([t, label]) => (
-                        <button
-                          key={t}
-                          onClick={() => setDrawTool(t)}
-                          className={`text-[9px] px-3 py-1.5 rounded-md border cursor-pointer transition-colors
-                            ${
-                              drawTool === t
-                                ? "bg-[#7E57C2] text-white border-[#7E57C2]"
-                                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-                            }`}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                    {/* Pen color picker */}
-                    {drawTool === "pen" && (
-                      <div className="flex gap-1 items-center">
-                        {[
-                          "#7E57C2",
-                          "#E91E63",
-                          "#1976D2",
-                          "#43A047",
-                          "#FF5722",
-                          "#000000",
-                        ].map((c) => (
-                          <button
-                            key={c}
-                            onClick={() => setPenColor(c)}
-                            title={c}
-                            className={`w-5 h-5 rounded-full border-2 cursor-pointer transition-transform hover:scale-110
-                              ${penColor === c ? "border-gray-700 scale-110" : "border-transparent"}`}
-                            style={{ backgroundColor: c }}
-                          />
-                        ))}
-                      </div>
-                    )}
-                    <div className="flex gap-1 ml-auto">
-                      <button
-                        onClick={undoDraw}
-                        disabled={history.length === 0}
-                        className="text-[9px] px-3 py-1.5 rounded-md border border-gray-200 bg-white text-gray-600 cursor-pointer hover:bg-gray-50 disabled:opacity-40"
-                      >
-                        ↩ Undo
-                      </button>
-                      <button
-                        onClick={clearCanvas}
-                        className="text-[9px] px-3 py-1.5 rounded-md border border-gray-200 bg-white text-gray-600 cursor-pointer hover:bg-gray-50"
-                      >
-                        🗑 Clear
-                      </button>
-                    </div>
-                  </div>
-
-                  <canvas
-                    ref={canvasRef}
-                    className="w-full rounded-lg bg-white cursor-crosshair border border-[#B39DDB] touch-none"
-                    style={{ height: "200px", display: "block" }}
-                    onMouseDown={startDraw}
-                    onMouseMove={draw}
-                    onMouseUp={endDraw}
-                    onMouseLeave={endDraw}
-                    onTouchStart={startDraw}
-                    onTouchMove={draw}
-                    onTouchEnd={endDraw}
-                  />
-                  <p className="text-[8px] text-gray-400 mt-1 mb-3">
-                    ✏️ Draw here — your drawing is saved as an image with the
-                    entry
+                {/* Photo upload */}
+                <div className="mb-3">
+                  <p className="text-[9px] font-bold text-gray-600 mb-1.5">
+                    Attach Photo{" "}
+                    <span className="text-gray-400 font-normal">
+                      (optional)
+                    </span>
                   </p>
+                  <div
+                    onClick={() => fileRef.current?.click()}
+                    className="border-2 border-dashed border-[#B39DDB] rounded-lg bg-[#FAF8FF] h-[64px] flex items-center justify-center cursor-pointer text-[#7E57C2] text-[10px] gap-2 hover:bg-[#EDE7F6] transition-colors overflow-hidden"
+                  >
+                    {photoPreview ? (
+                      <div className="relative w-full h-full">
+                        <img
+                          src={photoPreview}
+                          alt="preview"
+                          className="w-full h-full object-contain"
+                        />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPhoto(null);
+                            setPhotoPreview(null);
+                          }}
+                          className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5 border-none cursor-pointer"
+                          aria-label="Remove photo"
+                        >
+                          <X size={10} />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <Camera size={14} />
+                        <span>Upload Photo — JPG, PNG, GIF up to 10MB</span>
+                      </>
+                    )}
+                  </div>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif"
+                    className="hidden"
+                    onChange={handlePhotoChange}
+                  />
                 </div>
 
                 {/* Save button */}
@@ -568,13 +306,13 @@ export default function Journal() {
                   disabled={loading}
                   className="w-full py-2.5 bg-[#7E57C2] text-white border-none rounded-lg text-[11px] font-bold cursor-pointer disabled:opacity-50 hover:bg-[#512DA8] transition-colors"
                 >
-                  {loading ? "Saving..." : "💾 Save Journal Entry"}
+                  {loading ? "Saving..." : "Save Journal Entry"}
                 </button>
               </div>
             </div>
           </div>
 
-          {/* ── RIGHT: Past Entries ───────────────────────────── */}
+          {/* ── RIGHT: Past Entries ──────────────────────────────── */}
           <div className="bg-white rounded-xl border border-[#B39DDB] flex flex-col overflow-hidden min-h-0">
             <div className="px-3.5 py-2.5 text-[12px] font-bold text-[#512DA8] bg-[#EDE7F6] rounded-t-xl flex-shrink-0">
               Past Entries
@@ -586,7 +324,9 @@ export default function Journal() {
             <div className="overflow-y-auto flex-1 p-3 flex flex-col gap-2">
               {entries.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400 py-8">
-                  <div className="text-4xl mb-2">📭</div>
+                  {/* <div className="text-4xl mb-2">📭</div> */}
+                  <div className="text-4xl mb-2"></div>
+
                   <p className="text-[11px] font-semibold">No entries yet</p>
                   <p className="text-[9px] mt-1 text-center max-w-[180px]">
                     Write your first journal entry using the prompts or free

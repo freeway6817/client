@@ -69,7 +69,6 @@ export default function MoodTracker() {
     setLoading(true);
     try {
       if (photo) {
-        // IF PHOTO EXISTS: Send as multipart/form-data
         const formData = new FormData();
         formData.append("emoji", EMOJIS[selectedEmoji]);
         formData.append("score", score);
@@ -82,7 +81,6 @@ export default function MoodTracker() {
           headers: { "Content-Type": "multipart/form-data" },
         });
       } else {
-        // IF NO PHOTO: Send as standard JSON
         await api.post("/api/moods", {
           emoji: EMOJIS[selectedEmoji],
           score: score,
@@ -94,7 +92,6 @@ export default function MoodTracker() {
 
       toast.success("Mood entry saved!");
 
-      // Reset form
       setSelectedEmoji(null);
       setScore(5);
       setNote("");
@@ -254,9 +251,9 @@ export default function MoodTracker() {
           <div className="flex flex-col gap-6">
             {/* Overview Card */}
             <div className="bg-white rounded-[10px] border border-theme-border shadow-card p-6 flex items-center gap-4">
-              <div className="w-[60px] h-[60px] bg-[#EAFEFF] rounded-full flex items-center justify-center text-[#448BB7] flex-shrink-0">
+              {/* <div className="w-[60px] h-[60px] bg-[#EAFEFF] rounded-full flex items-center justify-center text-[#448BB7] flex-shrink-0">
                 <Activity size={28} />
-              </div>
+              </div> */}
               <div>
                 <h2 className="font-heading text-[24px] font-bold text-theme-dark leading-none mb-1">
                   Your History

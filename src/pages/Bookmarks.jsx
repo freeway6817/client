@@ -68,7 +68,9 @@ export default function Bookmarks() {
     <AppShell>
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-navy">🔖 Bookmarks</h1>
+        {/* <h1 className="text-xl font-bold text-navy">🔖 Bookmarks</h1> */}
+        <h1 className="text-xl font-bold text-navy">Bookmarks</h1>
+
         <p className="text-sm text-gray-500">
           Your saved articles, videos, and infographics
         </p>

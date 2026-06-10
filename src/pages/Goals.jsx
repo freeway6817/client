@@ -7,21 +7,21 @@ import { Plus, Trash2, X } from "lucide-react";
 
 const CATEGORY_META = {
   exercise: {
-    icon: "🏃",
+    // icon: "🏃",
     color: "#FF6B6B",
     bg: "#FFD6D6",
     border: "#FF6B6B",
     label: "Exercise Goal",
   },
   sleep: {
-    icon: "😴",
+    // icon: "😴",
     color: "#42A5F5",
     bg: "#D6EAFF",
     border: "#42A5F5",
     label: "Sleep Goal",
   },
   mental_health: {
-    icon: "🧠",
+    // icon: "🧠",
     color: "#AB47BC",
     bg: "#EDD6FF",
     border: "#AB47BC",
@@ -117,7 +117,9 @@ export default function Goals() {
         {/* Header */}
         <div className="flex items-center justify-between flex-shrink-0">
           <div>
-            <h1 className="text-[17px] font-bold text-navy">🎯 My Goals</h1>
+            {/* <h1 className="text-[17px] font-bold text-navy">🎯 My Goals</h1> */}
+            <h1 className="text-[17px] font-bold text-navy">My Goals</h1>
+
             <p className="text-[10px] text-gray-500 mt-0.5">
               Set targets, track progress, and maintain streaks
             </p>
@@ -234,7 +236,8 @@ export default function Goals() {
                           {
                             label: "Status",
                             value:
-                              goal.progress >= 100 ? "✅ Done" : "🟡 Active",
+                              // goal.progress >= 100 ? "✅ Done" : "🟡 Active",
+                              goal.progress >= 100 ? "Done" : "Active",
                           },
                         ].map((s) => (
                           <div
@@ -286,7 +289,8 @@ export default function Goals() {
                           className="text-[9px] font-bold text-white border-none rounded-md px-2.5 py-1.5 cursor-pointer hover:opacity-80 transition-opacity"
                           style={{ backgroundColor: meta.color }}
                         >
-                          🔥 +Streak
+                          {/* 🔥 +Streak */}
+                          +Streak
                         </button>
                         <button
                           onClick={() => handleDelete(goal.id)}

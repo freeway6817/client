@@ -1,30 +1,48 @@
 // client/src/pages/Resources.jsx
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import api from "../api/axios";
 import toast from "react-hot-toast";
-import { Bookmark, BookmarkCheck } from "lucide-react";
+import {
+  Bookmark,
+  BookmarkCheck,
+  FileText,
+  Play,
+  Mic,
+  BarChart2,
+  AlertTriangle,
+  Phone,
+  Clock,
+} from "lucide-react";
 
 const TYPE_META = {
   article: {
     label: "ARTICLE",
     color: "#2196F3",
     bg: "#E3F2FD",
-    icon: "📄",
+    Icon: FileText,
     action: "Read",
   },
   video: {
     label: "VIDEO",
     color: "#F44336",
     bg: "#FFEBEE",
-    icon: "▶️",
+    Icon: Play,
     action: "Watch",
+  },
+  podcast: {
+    label: "PODCAST",
+    color: "#9C27B0",
+    bg: "#F3E5F5",
+    Icon: Mic,
+    action: "Listen",
   },
   infographic: {
     label: "INFOGRAPHIC",
     color: "#4CAF50",
     bg: "#E8F5E9",
-    icon: "📊",
+    Icon: BarChart2,
     action: "View",
   },
 };
@@ -48,26 +66,59 @@ const HELPLINES = [
   },
 ];
 
+const FILTER_TABS = [
+  ["all", "All"],
+  ["article", "Article"],
+  ["video", "Video"],
+  ["podcast", "Podcast"],
+];
+
 export default function Resources() {
+  const location = useLocation();
+
   const [resources, setResources] = useState([]);
   const [bookmarked, setBookmarked] = useState(new Set());
-  const [filter, setFilter] = useState("all");
   const [recent, setRecent] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Read ?type= from URL on mount; fall back to "all"
+  const getInitialFilter = () => {
+    const param = new URLSearchParams(location.search).get("type");
+    return param && FILTER_TABS.some(([key]) => key === param) ? param : "all";
+  };
+  const [filter, setFilter] = useState(getInitialFilter);
 
   useEffect(() => {
+    // Fetch resources and bookmarks independently so one failure
+    // doesn't block the other from loading
     const loadResources = async () => {
+      setLoading(true);
       try {
-        const [r, b] = await Promise.all([
-          api.get("/api/resources"),
-          api.get("/api/resources/bookmarks"),
-        ]);
-        setResources(r.data);
-        setBookmarked(new Set(b.data.map((item) => item.id)));
+        const r = await api.get("/api/resources");
+        // Normalise type to lowercase so filtering is case-insensitive
+        const normalised = (r.data || []).map((item) => ({
+          ...item,
+          type: item.type ? item.type.toLowerCase() : "article",
+        }));
+        setResources(normalised);
       } catch {
         toast.error("Failed to load resources");
+      } finally {
+        setLoading(false);
       }
     };
+
+    const loadBookmarks = async () => {
+      try {
+        const b = await api.get("/api/resources/bookmarks");
+        setBookmarked(new Set((b.data || []).map((item) => item.id)));
+      } catch {
+        // Bookmarks failing should not block the page — fail silently
+      }
+    };
+
     loadResources();
+    loadBookmarks();
   }, []);
 
   const handleBookmark = async (resource) => {
@@ -99,6 +150,7 @@ export default function Resources() {
       window.open(resource.url, "_blank");
   };
 
+  // Case-insensitive filter match after normalisation
   const filtered =
     filter === "all" ? resources : resources.filter((r) => r.type === filter);
 
@@ -106,20 +158,15 @@ export default function Resources() {
     <AppShell>
       {/* Header */}
       <div className="mb-4">
-        <h1 className="text-xl font-bold text-navy">📚 Resources</h1>
+        <h1 className="text-xl font-bold text-navy">Resources</h1>
         <p className="text-sm text-gray-500">
-          Curated articles, videos, and infographics for your mental wellness
+          Curated articles, videos, and podcasts for your mental wellness
         </p>
       </div>
 
       {/* Filter tabs — scrollable on mobile */}
       <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-        {[
-          ["all", "All"],
-          ["article", "Article"],
-          ["video", "Video"],
-          ["infographic", "Infographic"],
-        ].map(([key, label]) => (
+        {FILTER_TABS.map(([key, label]) => (
           <button
             key={key}
             onClick={() => setFilter(key)}
@@ -139,26 +186,43 @@ export default function Resources() {
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Resource Grid */}
         <div className="flex-1 min-w-0">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="flex flex-col gap-4">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-xl p-4 border border-gray-100 flex gap-4 animate-pulse"
+                >
+                  <div className="w-14 h-14 rounded-lg bg-gray-100 flex-shrink-0" />
+                  <div className="flex-1 flex flex-col gap-2 justify-center">
+                    <div className="h-3 bg-gray-100 rounded w-1/4" />
+                    <div className="h-4 bg-gray-100 rounded w-3/4" />
+                    <div className="h-3 bg-gray-100 rounded w-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-              <div className="text-4xl mb-3">📭</div>
+              <AlertTriangle size={36} className="mb-3 text-gray-300" />
               <p className="text-sm">No resources found for this filter.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
               {filtered.map((resource) => {
                 const meta = TYPE_META[resource.type] || TYPE_META.article;
+                const { Icon } = meta;
                 return (
                   <div
                     key={resource.id}
                     className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex gap-4"
                   >
-                    {/* Thumbnail */}
+                    {/* Thumbnail — Lucide icon */}
                     <div
-                      className="w-14 h-14 rounded-lg flex items-center justify-center text-2xl flex-shrink-0"
+                      className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0"
                       style={{ background: meta.bg }}
                     >
-                      {meta.icon}
+                      <Icon size={24} style={{ color: meta.color }} />
                     </div>
 
                     {/* Content */}
@@ -213,16 +277,19 @@ export default function Resources() {
           )}
         </div>
 
-        {/* Right Panel — full width on mobile, fixed width on lg+ */}
+        {/* Right Panel */}
         <div className="w-full lg:w-64 flex-shrink-0 flex flex-col gap-4">
           {/* Crisis Helplines */}
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <h3 className="text-sm font-bold text-gray-700 mb-3">
-              🆘 Crisis Helplines
+            <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+              <AlertTriangle size={14} className="text-red-500" />
+              Crisis Helplines
             </h3>
             {HELPLINES.map((h) => (
               <div key={h.name} className="flex gap-2 mb-3 last:mb-0">
-                <span className="text-base">📞</span>
+                <div className="mt-0.5 flex-shrink-0">
+                  <Phone size={13} className="text-blue-500" />
+                </div>
                 <div>
                   <p className="text-[11px] font-semibold text-gray-800">
                     {h.name}
@@ -230,7 +297,10 @@ export default function Resources() {
                   <p className="text-[11px] font-bold text-blue-600">
                     {h.number}
                   </p>
-                  <p className="text-[10px] text-gray-500">{h.hours}</p>
+                  <p className="text-[10px] text-gray-500 flex items-center gap-1 mt-0.5">
+                    <Clock size={9} />
+                    {h.hours}
+                  </p>
                 </div>
               </div>
             ))}
@@ -240,21 +310,32 @@ export default function Resources() {
           {recent.length > 0 && (
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
               <h3 className="text-sm font-bold text-gray-700 mb-3">
-                📌 Recently Viewed
+                Recently Viewed
               </h3>
               {recent.map((r) => {
                 const meta = TYPE_META[r.type] || TYPE_META.article;
+                const { Icon } = meta;
                 return (
-                  <div key={r.id} className="mb-2 last:mb-0">
-                    <span
-                      className="text-[9px] font-bold"
+                  <div
+                    key={r.id}
+                    className="mb-2 last:mb-0 flex items-start gap-2"
+                  >
+                    <Icon
+                      size={11}
                       style={{ color: meta.color }}
-                    >
-                      {meta.label}
-                    </span>
-                    <p className="text-[11px] text-gray-700 leading-snug">
-                      {r.title}
-                    </p>
+                      className="mt-0.5 flex-shrink-0"
+                    />
+                    <div>
+                      <span
+                        className="text-[9px] font-bold"
+                        style={{ color: meta.color }}
+                      >
+                        {meta.label}
+                      </span>
+                      <p className="text-[11px] text-gray-700 leading-snug">
+                        {r.title}
+                      </p>
+                    </div>
                   </div>
                 );
               })}

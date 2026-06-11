@@ -6,6 +6,7 @@ import { Toaster } from "react-hot-toast";
 
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import MoodTracker from "./pages/MoodTracker";
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/" element={<RootRedirect />} />
         <Route path="/landing" element={<Landing />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
 
         {/* Protected routes */}
         <Route

@@ -38,7 +38,7 @@ export default function Landing() {
               goals, journal, and access professional mental health resources.
             </p>
             <Link
-              to="/register"
+              to="/signup"
               className="inline-flex items-center gap-2 bg-theme-blue text-white px-8 py-4 rounded-[2px] font-heading font-semibold text-[18px] hover:bg-theme-red transition-all duration-300 no-underline shadow-card"
             >
               Start Your Journey <ArrowRight size={20} />

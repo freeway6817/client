@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import AppShell from "../components/AppShell";
 import api from "../api/axios";
 import toast from "react-hot-toast";
-import { Trash2, Camera, X, CalendarDays } from "lucide-react";
+import { Trash2, Camera, X } from "lucide-react";
 
 // ─── Constants ────────────────────────────────────────────────
 const PROMPTS = [
@@ -36,17 +36,14 @@ const TAG_COLORS = {
   Connection: { bg: "#FCE4EC", text: "#C2185B", border: "#F48FB1" },
 };
 
-// ─── Helpers ──────────────────────────────────────────────────
-/** Returns "YYYY-MM-DD" in local time for a given Date object */
-const toLocalDateStr = (date) => {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+// Returns "YYYY-MM-DD" for today in local time
+const todayStr = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 };
-
-/** Returns "YYYY-MM-DD" from a createdat timestamp string */
-const entryDateStr = (createdat) => toLocalDateStr(new Date(createdat));
 
 // ─── Component ────────────────────────────────────────────────
 export default function Journal() {
@@ -57,9 +54,8 @@ export default function Journal() {
   const [photoPreview, setPhotoPreview] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Date filter state — defaults to today
-  const todayStr = toLocalDateStr(new Date());
-  const [filterDate, setFilterDate] = useState(todayStr);
+  // Date chosen for the new entry — defaults to today
+  const [entryDate, setEntryDate] = useState(todayStr());
 
   const fileRef = useRef(null);
 
@@ -76,25 +72,6 @@ export default function Journal() {
   useEffect(() => {
     fetchEntries();
   }, []);
-
-  // ── Filtered entries for the chosen date ──────────────────
-  const filteredEntries = entries.filter(
-    (e) => entryDateStr(e.createdat) === filterDate,
-  );
-
-  // Label shown in the "Write Your Entry" header
-  const headerDateLabel = new Date(filterDate + "T00:00:00").toLocaleDateString(
-    "en-MY",
-    { weekday: "short", day: "numeric", month: "short", year: "numeric" },
-  );
-
-  // Unique dates that have at least one entry (for the datepicker min/max hint)
-  const entryDates = [
-    ...new Set(entries.map((e) => entryDateStr(e.createdat))),
-  ];
-  const earliestDate = entryDates.length
-    ? entryDates.reduce((a, b) => (a < b ? a : b))
-    : todayStr;
 
   // ── Photo upload ──────────────────────────────────────────
   const handlePhotoChange = (e) => {
@@ -120,6 +97,7 @@ export default function Journal() {
     try {
       const formData = new FormData();
       formData.append("content", content.trim());
+      formData.append("entryDate", entryDate); // ← send chosen date
       if (selectedPrompt) {
         formData.append(
           "prompt",
@@ -139,8 +117,7 @@ export default function Journal() {
       setSelectedPrompt(null);
       setPhoto(null);
       setPhotoPreview(null);
-      // Reset filter to today so the new entry is visible
-      setFilterDate(todayStr);
+      setEntryDate(todayStr()); // reset date back to today after save
       fetchEntries();
     } catch {
       toast.error("Failed to save entry");
@@ -232,17 +209,7 @@ export default function Journal() {
               {/* Header */}
               <div className="flex items-center justify-between px-3.5 py-2.5 bg-[#EDE7F6] rounded-t-xl">
                 <span className="text-[12px] font-bold text-[#512DA8]">
-                  Write Your Entry —{" "}
-                  {filterDate === todayStr ? (
-                    new Date().toLocaleDateString("en-MY", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })
-                  ) : (
-                    <span className="text-[#7E57C2]">{headerDateLabel}</span>
-                  )}
+                  Write Your Entry
                 </span>
                 <span className="text-[9px] text-gray-500 tabular-nums">
                   {wordCount} {wordCount === 1 ? "word" : "words"}
@@ -250,6 +217,34 @@ export default function Journal() {
               </div>
 
               <div className="p-3">
+                {/* ── Date picker ───────────────────────────────────── */}
+                <div className="flex items-center gap-2 mb-3 bg-[#FAF8FF] border border-[#B39DDB] rounded-lg px-3 py-2">
+                  <label
+                    htmlFor="entry-date"
+                    className="text-[9px] font-bold text-[#512DA8] whitespace-nowrap"
+                  >
+                    Entry date:
+                  </label>
+                  <input
+                    id="entry-date"
+                    type="date"
+                    value={entryDate}
+                    max={todayStr()}
+                    onChange={(e) => {
+                      if (e.target.value) setEntryDate(e.target.value);
+                    }}
+                    className="flex-1 min-w-0 bg-transparent border-none text-[9px] text-[#512DA8] font-medium focus:outline-none cursor-pointer"
+                  />
+                  {entryDate !== todayStr() && (
+                    <button
+                      onClick={() => setEntryDate(todayStr())}
+                      className="text-[8px] text-[#7E57C2] font-semibold bg-white border border-[#B39DDB] rounded-full px-2 py-0.5 cursor-pointer hover:bg-[#EDE7F6] transition-colors whitespace-nowrap"
+                    >
+                      Reset to today
+                    </button>
+                  )}
+                </div>
+
                 {/* Selected prompt banner */}
                 {selectedPrompt && (
                   <div className="bg-[#F3EEF9] border border-[#B39DDB] rounded-lg p-2.5 mb-3 flex items-start justify-between gap-2">
@@ -355,72 +350,25 @@ export default function Journal() {
 
           {/* ── RIGHT: Past Entries ──────────────────────────────── */}
           <div className="bg-white rounded-xl border border-[#B39DDB] flex flex-col overflow-hidden min-h-0">
-            {/* Panel header with date picker */}
-            <div className="px-3.5 py-2.5 bg-[#EDE7F6] rounded-t-xl flex-shrink-0">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[12px] font-bold text-[#512DA8]">
-                  Past Entries
-                  <span className="ml-2 text-[9px] font-normal text-[#9575CD]">
-                    {filteredEntries.length}{" "}
-                    {filteredEntries.length === 1 ? "entry" : "entries"}
-                  </span>
-                </span>
-                {/* "Today" quick-reset pill */}
-                {filterDate !== todayStr && (
-                  <button
-                    onClick={() => setFilterDate(todayStr)}
-                    className="text-[8px] font-semibold text-[#7E57C2] bg-white border border-[#B39DDB] rounded-full px-2 py-0.5 cursor-pointer hover:bg-[#F3EEF9] transition-colors"
-                  >
-                    Back to Today
-                  </button>
-                )}
-              </div>
-
-              {/* Date picker row */}
-              <div className="flex items-center gap-1.5">
-                <CalendarDays
-                  size={11}
-                  className="text-[#9575CD] flex-shrink-0"
-                />
-                <label
-                  htmlFor="journal-date-filter"
-                  className="text-[9px] text-[#9575CD] font-semibold whitespace-nowrap"
-                >
-                  Browse date:
-                </label>
-                <input
-                  id="journal-date-filter"
-                  type="date"
-                  value={filterDate}
-                  max={todayStr}
-                  min={earliestDate}
-                  onChange={(e) => {
-                    if (e.target.value) setFilterDate(e.target.value);
-                  }}
-                  className="flex-1 min-w-0 bg-white border border-[#B39DDB] rounded-lg px-2 py-1 text-[9px] text-[#512DA8] font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#9575CD]/30"
-                />
-              </div>
+            <div className="px-3.5 py-2.5 text-[12px] font-bold text-[#512DA8] bg-[#EDE7F6] rounded-t-xl flex-shrink-0">
+              Past Entries
+              <span className="ml-2 text-[9px] font-normal text-[#9575CD]">
+                {entries.length} {entries.length === 1 ? "entry" : "entries"}
+              </span>
             </div>
 
             <div className="overflow-y-auto flex-1 p-3 flex flex-col gap-2">
-              {filteredEntries.length === 0 ? (
+              {entries.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400 py-8">
-                  <div className="text-4xl mb-2">
-                    {filterDate === todayStr ? "" : "📅"}
-                  </div>
-                  <p className="text-[11px] font-semibold">
-                    {filterDate === todayStr
-                      ? "No entries yet"
-                      : "No entries on this date"}
-                  </p>
+                  <div className="text-4xl mb-2"></div>
+                  <p className="text-[11px] font-semibold">No entries yet</p>
                   <p className="text-[9px] mt-1 text-center max-w-[180px]">
-                    {filterDate === todayStr
-                      ? "Write your first journal entry using the prompts or free write!"
-                      : `Nothing was written on ${headerDateLabel}.`}
+                    Write your first journal entry using the prompts or free
+                    write!
                   </p>
                 </div>
               ) : (
-                filteredEntries.map((entry) => {
+                entries.map((entry) => {
                   const badge = getEntryBadge(entry);
                   return (
                     <div

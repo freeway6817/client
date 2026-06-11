@@ -6,36 +6,24 @@ import toast from "react-hot-toast";
 import { Trash2, Camera, X, CalendarDays, Expand } from "lucide-react";
 import { resolveMediaUrl } from "../api/resolveUrl";
 
-// ─── Constants ────────────────────────────────────────────────
-const PROMPTS = [
-  {
-    id: 14,
-    text: "What is one thing you are grateful for today, and why does it matter to you?",
-    tag: "Gratitude",
-  },
-  {
-    id: 22,
-    text: "Describe a moment today where you felt at peace. What made it special?",
-    tag: "Mindfulness",
-  },
-  {
-    id: 7,
-    text: "What challenge did you face today and how did you handle it?",
-    tag: "Resilience",
-  },
-  {
-    id: 31,
-    text: "Write about someone who made you smile recently and why.",
-    tag: "Connection",
-  },
-];
-
+// ─── Tag colour palette (covers common tags; falls back gracefully) ──────────
 const TAG_COLORS = {
   Gratitude: { bg: "#FFF9C4", text: "#F57F17", border: "#FFD54F" },
   Mindfulness: { bg: "#E8F5E9", text: "#2E7D32", border: "#81C784" },
   Resilience: { bg: "#E3F2FD", text: "#1565C0", border: "#64B5F6" },
   Connection: { bg: "#FCE4EC", text: "#C2185B", border: "#F48FB1" },
+  Reflection: { bg: "#F3E5F5", text: "#6A1B9A", border: "#CE93D8" },
+  Motivation: { bg: "#FFF3E0", text: "#E65100", border: "#FFCC80" },
+  Anxiety: { bg: "#FBE9E7", text: "#BF360C", border: "#FFAB91" },
+  Growth: { bg: "#E8F5E9", text: "#1B5E20", border: "#A5D6A7" },
+  Happiness: { bg: "#FFFDE7", text: "#F57F17", border: "#FFF176" },
+  Stress: { bg: "#FCE4EC", text: "#880E4F", border: "#F48FB1" },
 };
+
+// Fallback colours for any tag not in the map above
+const DEFAULT_TAG_COLOR = { bg: "#EDE7F6", text: "#512DA8", border: "#B39DDB" };
+
+const getTagColor = (tag) => TAG_COLORS[tag] || DEFAULT_TAG_COLOR;
 
 // ─── Helpers ──────────────────────────────────────────────────
 const toLocalDateStr = (date) => {
@@ -82,9 +70,26 @@ function Lightbox({ src, alt, onClose }) {
   );
 }
 
+// ─── Prompt skeleton loader ───────────────────────────────────
+function PromptSkeleton() {
+  return (
+    <div className="p-3 rounded-xl border-[1.5px] border-gray-100 bg-white animate-pulse">
+      <div className="flex items-center gap-1.5 mb-2">
+        <div className="h-4 w-16 bg-gray-100 rounded-full" />
+        <div className="h-3 w-12 bg-gray-100 rounded-full" />
+      </div>
+      <div className="h-3 w-full bg-gray-100 rounded mb-1" />
+      <div className="h-3 w-4/5 bg-gray-100 rounded" />
+    </div>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────
 export default function Journal() {
   const [entries, setEntries] = useState([]);
+  const [prompts, setPrompts] = useState([]);
+  const [promptsLoading, setPromptsLoading] = useState(true);
+
   const [selectedPrompt, setSelectedPrompt] = useState(null);
   const [content, setContent] = useState("");
   const [photo, setPhoto] = useState(null);
@@ -92,7 +97,7 @@ export default function Journal() {
   const [loading, setLoading] = useState(false);
   const [entryDate, setEntryDate] = useState(todayStr());
 
-  // Filter state for past entries panel
+  // Filter for past entries panel
   const [filterDate, setFilterDate] = useState(todayStr());
 
   // Lightbox
@@ -101,7 +106,20 @@ export default function Journal() {
 
   const fileRef = useRef(null);
 
-  // ── Fetch entries ──────────────────────────────────────────
+  // ── Fetch prompts from API ────────────────────────────────
+  const fetchPrompts = async () => {
+    try {
+      setPromptsLoading(true);
+      const { data } = await api.get("/api/journal-prompts");
+      setPrompts(data);
+    } catch {
+      toast.error("Failed to load prompts");
+    } finally {
+      setPromptsLoading(false);
+    }
+  };
+
+  // ── Fetch entries ─────────────────────────────────────────
   const fetchEntries = async () => {
     try {
       const { data } = await api.get("/api/journal");
@@ -112,6 +130,7 @@ export default function Journal() {
   };
 
   useEffect(() => {
+    fetchPrompts();
     fetchEntries();
   }, []);
 
@@ -160,7 +179,7 @@ export default function Journal() {
       if (selectedPrompt) {
         formData.append(
           "prompt",
-          `Prompt #${selectedPrompt.id} • ${selectedPrompt.tag} — ${selectedPrompt.text}`,
+          `Prompt #${selectedPrompt.id} • ${selectedPrompt.tag} — ${selectedPrompt.prompt}`,
         );
       }
       if (photo) formData.append("photo", photo);
@@ -174,9 +193,8 @@ export default function Journal() {
       setSelectedPrompt(null);
       setPhoto(null);
       setPhotoPreview(null);
+      setFilterDate(entryDate); // jump filter to the saved date
       setEntryDate(todayStr());
-      // Jump the filter to the date we just saved to
-      setFilterDate(entryDate);
       fetchEntries();
     } catch {
       toast.error("Failed to save entry");
@@ -222,51 +240,69 @@ export default function Journal() {
           </p>
         </div>
 
-        {/* ── Two-column layout ─────────────────────────────────── */}
+        {/* ── Two-column layout ────────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-[1fr_320px] gap-3 flex-1 overflow-auto min-h-0">
-          {/* ── LEFT: Prompts + Write ──────────────────────────── */}
+          {/* ── LEFT: Prompts + Write ─────────────────────────── */}
           <div className="flex flex-col gap-3 overflow-y-auto pr-1">
-            {/* Today's Journal Prompts */}
+            {/* Journal Prompts — fetched from API */}
             <div className="bg-white rounded-xl border border-[#B39DDB] flex-shrink-0">
-              <div className="px-3.5 py-2.5 text-[12px] font-bold text-[#512DA8] bg-[#EDE7F6] rounded-t-xl">
-                Today's Journal Prompts
+              <div className="px-3.5 py-2.5 text-[12px] font-bold text-[#512DA8] bg-[#EDE7F6] rounded-t-xl flex items-center justify-between">
+                <span>Today's Journal Prompts</span>
+                {!promptsLoading && prompts.length > 0 && (
+                  <span className="text-[9px] font-normal text-[#9575CD]">
+                    {prompts.length} available
+                  </span>
+                )}
               </div>
+
               <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {PROMPTS.map((p) => {
-                  const colors = TAG_COLORS[p.tag];
-                  const isActive = selectedPrompt?.id === p.id;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => setSelectedPrompt(isActive ? null : p)}
-                      className={`text-left p-3 rounded-xl border-[1.5px] cursor-pointer transition-all
-                        ${
-                          isActive
-                            ? "border-[#7E57C2] bg-[#F3EEF9] ring-2 ring-[#9575CD]/30"
-                            : "border-gray-200 bg-white hover:border-[#B39DDB] hover:bg-[#FAF8FF]"
-                        }`}
-                    >
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <span
-                          className="text-[8px] font-bold px-2 py-0.5 rounded-full border"
-                          style={{
-                            backgroundColor: colors.bg,
-                            color: colors.text,
-                            borderColor: colors.border,
-                          }}
-                        >
-                          {p.tag}
-                        </span>
-                        <span className="text-[8px] text-gray-400">
-                          Prompt #{p.id}
-                        </span>
-                      </div>
-                      <p className="text-[9px] text-gray-700 italic leading-[1.5] line-clamp-3">
-                        "{p.text}"
-                      </p>
-                    </button>
-                  );
-                })}
+                {promptsLoading ? (
+                  // Skeleton placeholders while loading
+                  [0, 1, 2, 3].map((i) => <PromptSkeleton key={i} />)
+                ) : prompts.length === 0 ? (
+                  <div className="col-span-2 text-center py-6 text-gray-400">
+                    <p className="text-[11px] font-semibold">No prompts yet</p>
+                    <p className="text-[9px] mt-1">
+                      An admin can add prompts from the Admin Dashboard.
+                    </p>
+                  </div>
+                ) : (
+                  prompts.map((p) => {
+                    const colors = getTagColor(p.tag);
+                    const isActive = selectedPrompt?.id === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => setSelectedPrompt(isActive ? null : p)}
+                        className={`text-left p-3 rounded-xl border-[1.5px] cursor-pointer transition-all
+                          ${
+                            isActive
+                              ? "border-[#7E57C2] bg-[#F3EEF9] ring-2 ring-[#9575CD]/30"
+                              : "border-gray-200 bg-white hover:border-[#B39DDB] hover:bg-[#FAF8FF]"
+                          }`}
+                      >
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <span
+                            className="text-[8px] font-bold px-2 py-0.5 rounded-full border"
+                            style={{
+                              backgroundColor: colors.bg,
+                              color: colors.text,
+                              borderColor: colors.border,
+                            }}
+                          >
+                            {p.tag}
+                          </span>
+                          <span className="text-[8px] text-gray-400">
+                            Prompt #{p.id}
+                          </span>
+                        </div>
+                        <p className="text-[9px] text-gray-700 italic leading-[1.5] line-clamp-3">
+                          "{p.prompt}"
+                        </p>
+                      </button>
+                    );
+                  })
+                )}
               </div>
             </div>
 
@@ -317,9 +353,9 @@ export default function Journal() {
                       <span
                         className="text-[7px] font-bold px-1.5 py-0.5 rounded-full border mr-2"
                         style={{
-                          backgroundColor: TAG_COLORS[selectedPrompt.tag].bg,
-                          color: TAG_COLORS[selectedPrompt.tag].text,
-                          borderColor: TAG_COLORS[selectedPrompt.tag].border,
+                          backgroundColor: getTagColor(selectedPrompt.tag).bg,
+                          color: getTagColor(selectedPrompt.tag).text,
+                          borderColor: getTagColor(selectedPrompt.tag).border,
                         }}
                       >
                         {selectedPrompt.tag}
@@ -328,7 +364,7 @@ export default function Journal() {
                         Prompt #{selectedPrompt.id}
                       </span>
                       <p className="text-[9px] text-[#4527A0] italic leading-[1.5] mt-1">
-                        "{selectedPrompt.text}"
+                        "{selectedPrompt.prompt}"
                       </p>
                     </div>
                     <button
@@ -348,7 +384,7 @@ export default function Journal() {
                   rows={7}
                   placeholder={
                     selectedPrompt
-                      ? `Respond to the prompt: "${selectedPrompt.text.substring(0, 60)}..."`
+                      ? `Respond to the prompt: "${selectedPrompt.prompt.substring(0, 60)}..."`
                       : "Start writing your thoughts freely..."
                   }
                   className="w-full bg-[#FAF8FF] border border-[#B39DDB] rounded-lg px-3 py-2.5 text-[10px] resize-none font-sans leading-[1.7] mb-3 focus:outline-none focus:ring-2 focus:ring-[#9575CD]/30"
@@ -413,9 +449,8 @@ export default function Journal() {
             </div>
           </div>
 
-          {/* ── RIGHT: Past Entries ──────────────────────────────── */}
+          {/* ── RIGHT: Past Entries ───────────────────────────── */}
           <div className="bg-white rounded-xl border border-[#B39DDB] flex flex-col overflow-hidden min-h-0">
-            {/* Panel header with date filter */}
             <div className="px-3.5 py-2.5 bg-[#EDE7F6] rounded-t-xl flex-shrink-0">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[12px] font-bold text-[#512DA8]">
@@ -495,7 +530,6 @@ export default function Journal() {
                         {entry.content}
                       </p>
 
-                      {/* Photo thumbnail + lightbox */}
                       {fullPhotoUrl && (
                         <div
                           className="relative mb-2 rounded-lg overflow-hidden group cursor-pointer"

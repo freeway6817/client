@@ -3,7 +3,8 @@ import { useState, useEffect, useRef } from "react";
 import AppShell from "../components/AppShell";
 import api from "../api/axios";
 import toast from "react-hot-toast";
-import { Trash2, Camera, X, Expand } from "lucide-react";
+import { Trash2, Camera, X, CalendarDays, Expand } from "lucide-react";
+import { resolveMediaUrl } from "../api/resolveUrl";
 
 // ─── Constants ────────────────────────────────────────────────
 const PROMPTS = [
@@ -37,22 +38,18 @@ const TAG_COLORS = {
 };
 
 // ─── Helpers ──────────────────────────────────────────────────
-const todayStr = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const toLocalDateStr = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 };
 
-/** Prepend the server base URL so /uploads/... resolves correctly */
-const resolvePhotoUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith("http")) return url;
-  const base = import.meta.env.VITE_API_URL || "http://localhost:5000";
-  return `${base}${url}`;
-};
+const todayStr = () => toLocalDateStr(new Date());
+const entryDateStr = (createdat) => toLocalDateStr(new Date(createdat));
 
-// ─── Photo Lightbox ───────────────────────────────────────────
+// ─── Lightbox ─────────────────────────────────────────────────
 function Lightbox({ src, alt, onClose }) {
-  // Close on Escape key
   useEffect(() => {
     const handler = (e) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", handler);
@@ -95,7 +92,10 @@ export default function Journal() {
   const [loading, setLoading] = useState(false);
   const [entryDate, setEntryDate] = useState(todayStr());
 
-  // Lightbox state: null = closed, string = URL to show
+  // Filter state for past entries panel
+  const [filterDate, setFilterDate] = useState(todayStr());
+
+  // Lightbox
   const [lightboxSrc, setLightboxSrc] = useState(null);
   const [lightboxAlt, setLightboxAlt] = useState("");
 
@@ -114,6 +114,23 @@ export default function Journal() {
   useEffect(() => {
     fetchEntries();
   }, []);
+
+  // ── Derived values ────────────────────────────────────────
+  const filteredEntries = entries.filter(
+    (e) => entryDateStr(e.createdat) === filterDate,
+  );
+
+  const filterDateLabel = new Date(filterDate + "T00:00:00").toLocaleDateString(
+    "en-MY",
+    { weekday: "short", day: "numeric", month: "short", year: "numeric" },
+  );
+
+  const entryDates = [
+    ...new Set(entries.map((e) => entryDateStr(e.createdat))),
+  ];
+  const earliestDate = entryDates.length
+    ? entryDates.reduce((a, b) => (a < b ? a : b))
+    : todayStr();
 
   // ── Photo upload ──────────────────────────────────────────
   const handlePhotoChange = (e) => {
@@ -146,9 +163,7 @@ export default function Journal() {
           `Prompt #${selectedPrompt.id} • ${selectedPrompt.tag} — ${selectedPrompt.text}`,
         );
       }
-      if (photo) {
-        formData.append("photo", photo);
-      }
+      if (photo) formData.append("photo", photo);
 
       await api.post("/api/journal", formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -160,6 +175,8 @@ export default function Journal() {
       setPhoto(null);
       setPhotoPreview(null);
       setEntryDate(todayStr());
+      // Jump the filter to the date we just saved to
+      setFilterDate(entryDate);
       fetchEntries();
     } catch {
       toast.error("Failed to save entry");
@@ -179,7 +196,6 @@ export default function Journal() {
     }
   };
 
-  // ── Entry type badge ──────────────────────────────────────
   const getEntryBadge = (entry) => {
     if (entry.photourl)
       return { icon: "🖼️", label: "Photo", color: "#1976D2", bg: "#E3F2FD" };
@@ -189,7 +205,6 @@ export default function Journal() {
   // ─── Render ───────────────────────────────────────────────
   return (
     <AppShell>
-      {/* Lightbox overlay */}
       {lightboxSrc && (
         <Lightbox
           src={lightboxSrc}
@@ -257,7 +272,6 @@ export default function Journal() {
 
             {/* Write Your Entry */}
             <div className="bg-white rounded-xl border border-[#B39DDB] flex-shrink-0">
-              {/* Header */}
               <div className="flex items-center justify-between px-3.5 py-2.5 bg-[#EDE7F6] rounded-t-xl">
                 <span className="text-[12px] font-bold text-[#512DA8]">
                   Write Your Entry
@@ -268,7 +282,7 @@ export default function Journal() {
               </div>
 
               <div className="p-3">
-                {/* Date picker */}
+                {/* Entry date picker */}
                 <div className="flex items-center gap-2 mb-3 bg-[#FAF8FF] border border-[#B39DDB] rounded-lg px-3 py-2">
                   <label
                     htmlFor="entry-date"
@@ -401,27 +415,71 @@ export default function Journal() {
 
           {/* ── RIGHT: Past Entries ──────────────────────────────── */}
           <div className="bg-white rounded-xl border border-[#B39DDB] flex flex-col overflow-hidden min-h-0">
-            <div className="px-3.5 py-2.5 text-[12px] font-bold text-[#512DA8] bg-[#EDE7F6] rounded-t-xl flex-shrink-0">
-              Past Entries
-              <span className="ml-2 text-[9px] font-normal text-[#9575CD]">
-                {entries.length} {entries.length === 1 ? "entry" : "entries"}
-              </span>
+            {/* Panel header with date filter */}
+            <div className="px-3.5 py-2.5 bg-[#EDE7F6] rounded-t-xl flex-shrink-0">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[12px] font-bold text-[#512DA8]">
+                  Past Entries
+                  <span className="ml-2 text-[9px] font-normal text-[#9575CD]">
+                    {filteredEntries.length}{" "}
+                    {filteredEntries.length === 1 ? "entry" : "entries"}
+                  </span>
+                </span>
+                {filterDate !== todayStr() && (
+                  <button
+                    onClick={() => setFilterDate(todayStr())}
+                    className="text-[8px] font-semibold text-[#7E57C2] bg-white border border-[#B39DDB] rounded-full px-2 py-0.5 cursor-pointer hover:bg-[#F3EEF9] transition-colors"
+                  >
+                    Back to Today
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CalendarDays
+                  size={11}
+                  className="text-[#9575CD] flex-shrink-0"
+                />
+                <label
+                  htmlFor="journal-date-filter"
+                  className="text-[9px] text-[#9575CD] font-semibold whitespace-nowrap"
+                >
+                  Browse date:
+                </label>
+                <input
+                  id="journal-date-filter"
+                  type="date"
+                  value={filterDate}
+                  max={todayStr()}
+                  min={earliestDate}
+                  onChange={(e) => {
+                    if (e.target.value) setFilterDate(e.target.value);
+                  }}
+                  className="flex-1 min-w-0 bg-white border border-[#B39DDB] rounded-lg px-2 py-1 text-[9px] text-[#512DA8] font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#9575CD]/30"
+                />
+              </div>
             </div>
 
             <div className="overflow-y-auto flex-1 p-3 flex flex-col gap-2">
-              {entries.length === 0 ? (
+              {filteredEntries.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400 py-8">
-                  <div className="text-4xl mb-2"></div>
-                  <p className="text-[11px] font-semibold">No entries yet</p>
+                  <div className="text-4xl mb-2">
+                    {filterDate === todayStr() ? "" : "📅"}
+                  </div>
+                  <p className="text-[11px] font-semibold">
+                    {filterDate === todayStr()
+                      ? "No entries yet"
+                      : "No entries on this date"}
+                  </p>
                   <p className="text-[9px] mt-1 text-center max-w-[180px]">
-                    Write your first journal entry using the prompts or free
-                    write!
+                    {filterDate === todayStr()
+                      ? "Write your first journal entry using the prompts or free write!"
+                      : `Nothing was written on ${filterDateLabel}.`}
                   </p>
                 </div>
               ) : (
-                entries.map((entry) => {
+                filteredEntries.map((entry) => {
                   const badge = getEntryBadge(entry);
-                  const fullPhotoUrl = resolvePhotoUrl(entry.photourl);
+                  const fullPhotoUrl = resolveMediaUrl(entry.photourl);
                   return (
                     <div
                       key={entry.id}
@@ -437,7 +495,7 @@ export default function Journal() {
                         {entry.content}
                       </p>
 
-                      {/* ── Photo thumbnail + expand button ── */}
+                      {/* Photo thumbnail + lightbox */}
                       {fullPhotoUrl && (
                         <div
                           className="relative mb-2 rounded-lg overflow-hidden group cursor-pointer"
@@ -452,7 +510,6 @@ export default function Journal() {
                             className="w-full h-[80px] object-cover rounded-lg transition-opacity group-hover:opacity-80"
                             loading="lazy"
                           />
-                          {/* Expand hint overlay */}
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <span className="bg-black/60 text-white rounded-full p-1.5">
                               <Expand size={14} />

@@ -4,6 +4,7 @@ import AppShell from "../components/AppShell";
 import api from "../api/axios";
 import toast from "react-hot-toast";
 import { Trash2, Camera, Calendar, X, Expand } from "lucide-react";
+import { resolveMediaUrl } from "../api/resolveUrl";
 
 const EMOJIS = ["😢", "🙁", "😐", "🙂", "😁"];
 const LABELS = ["Awful", "Bad", "Okay", "Good", "Great"];
@@ -24,14 +25,6 @@ const ALL_TAGS = [
 const todayStr = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
-
-/** Prefix relative /uploads/... paths with the server base URL */
-const resolvePhotoUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith("http")) return url;
-  const base = import.meta.env.VITE_API_URL || "http://localhost:5000";
-  return `${base}${url}`;
 };
 
 // ─── Lightbox ─────────────────────────────────────────────────
@@ -80,7 +73,6 @@ export default function MoodTracker() {
   const [loading, setLoading] = useState(false);
   const [entryDate, setEntryDate] = useState(todayStr());
 
-  // Lightbox state
   const [lightboxSrc, setLightboxSrc] = useState(null);
   const [lightboxAlt, setLightboxAlt] = useState("");
 
@@ -166,7 +158,6 @@ export default function MoodTracker() {
 
   return (
     <AppShell>
-      {/* Lightbox overlay */}
       {lightboxSrc && (
         <Lightbox
           src={lightboxSrc}
@@ -216,7 +207,11 @@ export default function MoodTracker() {
                         setScore(i * 2 + 2);
                       }}
                       className={`flex flex-col items-center flex-1 py-3 rounded-[8px] border-2 transition-all duration-300 cursor-pointer bg-white
-                        ${selectedEmoji === i ? "border-theme-blue scale-105 shadow-card-soft" : "border-gray-100 hover:border-gray-300 hover:bg-gray-50"}`}
+                        ${
+                          selectedEmoji === i
+                            ? "border-theme-blue scale-105 shadow-card-soft"
+                            : "border-gray-100 hover:border-gray-300 hover:bg-gray-50"
+                        }`}
                     >
                       <span className="text-[28px] sm:text-[36px]">{e}</span>
                       <span
@@ -238,7 +233,11 @@ export default function MoodTracker() {
                       key={tag}
                       onClick={() => toggleTag(tag)}
                       className={`px-4 py-2 rounded-full text-[13px] font-semibold transition-colors border-none cursor-pointer
-                        ${activeTags.includes(tag) ? "bg-theme-blue text-white" : "bg-theme-light text-theme-body hover:bg-gray-200"}`}
+                        ${
+                          activeTags.includes(tag)
+                            ? "bg-theme-blue text-white"
+                            : "bg-theme-light text-theme-body hover:bg-gray-200"
+                        }`}
                     >
                       {tag}
                     </button>
@@ -334,7 +333,6 @@ export default function MoodTracker() {
 
           {/* RIGHT COLUMN: History View */}
           <div className="flex flex-col gap-6">
-            {/* Overview Card */}
             <div className="bg-white rounded-[10px] border border-theme-border shadow-card p-6 flex items-center gap-4">
               <div>
                 <h2 className="font-heading text-[24px] font-bold text-theme-dark leading-none mb-1">
@@ -362,7 +360,7 @@ export default function MoodTracker() {
                   </div>
                 ) : (
                   entries.map((entry) => {
-                    const fullPhotoUrl = resolvePhotoUrl(entry.photourl);
+                    const fullPhotoUrl = resolveMediaUrl(entry.photourl);
                     return (
                       <div
                         key={entry.id}
@@ -418,7 +416,7 @@ export default function MoodTracker() {
                           </p>
                         )}
 
-                        {/* ── Photo thumbnail + lightbox ── */}
+                        {/* Photo thumbnail + lightbox */}
                         {fullPhotoUrl && (
                           <div
                             className="relative mt-3 rounded-[6px] overflow-hidden cursor-pointer group/photo"
@@ -433,7 +431,6 @@ export default function MoodTracker() {
                               className="w-full h-[150px] object-cover rounded-[6px] transition-opacity group-hover/photo:opacity-80"
                               loading="lazy"
                             />
-                            {/* Expand hint overlay */}
                             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/photo:opacity-100 transition-opacity">
                               <span className="bg-black/60 text-white rounded-full p-2">
                                 <Expand size={18} />

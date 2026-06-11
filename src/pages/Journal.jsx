@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import AppShell from "../components/AppShell";
 import api from "../api/axios";
 import toast from "react-hot-toast";
-import { Trash2, Camera, X } from "lucide-react";
+import { Trash2, Camera, X, Expand } from "lucide-react";
 
 // ─── Constants ────────────────────────────────────────────────
 const PROMPTS = [
@@ -36,14 +36,54 @@ const TAG_COLORS = {
   Connection: { bg: "#FCE4EC", text: "#C2185B", border: "#F48FB1" },
 };
 
-// Returns "YYYY-MM-DD" for today in local time
+// ─── Helpers ──────────────────────────────────────────────────
 const todayStr = () => {
   const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
+
+/** Prepend the server base URL so /uploads/... resolves correctly */
+const resolvePhotoUrl = (url) => {
+  if (!url) return null;
+  if (url.startsWith("http")) return url;
+  const base = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  return `${base}${url}`;
+};
+
+// ─── Photo Lightbox ───────────────────────────────────────────
+function Lightbox({ src, alt, onClose }) {
+  // Close on Escape key
+  useEffect(() => {
+    const handler = (e) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="relative max-w-[90vw] max-h-[90vh] rounded-xl overflow-hidden shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <img
+          src={src}
+          alt={alt}
+          className="block max-w-[90vw] max-h-[85vh] object-contain"
+        />
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 border-none cursor-pointer transition-colors"
+          aria-label="Close photo"
+        >
+          <X size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ─── Component ────────────────────────────────────────────────
 export default function Journal() {
@@ -53,9 +93,11 @@ export default function Journal() {
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  // Date chosen for the new entry — defaults to today
   const [entryDate, setEntryDate] = useState(todayStr());
+
+  // Lightbox state: null = closed, string = URL to show
+  const [lightboxSrc, setLightboxSrc] = useState(null);
+  const [lightboxAlt, setLightboxAlt] = useState("");
 
   const fileRef = useRef(null);
 
@@ -97,7 +139,7 @@ export default function Journal() {
     try {
       const formData = new FormData();
       formData.append("content", content.trim());
-      formData.append("entryDate", entryDate); // ← send chosen date
+      formData.append("entryDate", entryDate);
       if (selectedPrompt) {
         formData.append(
           "prompt",
@@ -117,7 +159,7 @@ export default function Journal() {
       setSelectedPrompt(null);
       setPhoto(null);
       setPhotoPreview(null);
-      setEntryDate(todayStr()); // reset date back to today after save
+      setEntryDate(todayStr());
       fetchEntries();
     } catch {
       toast.error("Failed to save entry");
@@ -147,6 +189,15 @@ export default function Journal() {
   // ─── Render ───────────────────────────────────────────────
   return (
     <AppShell>
+      {/* Lightbox overlay */}
+      {lightboxSrc && (
+        <Lightbox
+          src={lightboxSrc}
+          alt={lightboxAlt}
+          onClose={() => setLightboxSrc(null)}
+        />
+      )}
+
       <div className="flex flex-col gap-3 h-full">
         {/* Page header */}
         <div className="flex-shrink-0">
@@ -217,7 +268,7 @@ export default function Journal() {
               </div>
 
               <div className="p-3">
-                {/* ── Date picker ───────────────────────────────────── */}
+                {/* Date picker */}
                 <div className="flex items-center gap-2 mb-3 bg-[#FAF8FF] border border-[#B39DDB] rounded-lg px-3 py-2">
                   <label
                     htmlFor="entry-date"
@@ -370,6 +421,7 @@ export default function Journal() {
               ) : (
                 entries.map((entry) => {
                   const badge = getEntryBadge(entry);
+                  const fullPhotoUrl = resolvePhotoUrl(entry.photourl);
                   return (
                     <div
                       key={entry.id}
@@ -385,13 +437,28 @@ export default function Journal() {
                         {entry.content}
                       </p>
 
-                      {entry.photourl && (
-                        <img
-                          src={entry.photourl}
-                          alt="Journal attachment"
-                          className="w-full h-[60px] object-cover rounded-lg mb-2"
-                          loading="lazy"
-                        />
+                      {/* ── Photo thumbnail + expand button ── */}
+                      {fullPhotoUrl && (
+                        <div
+                          className="relative mb-2 rounded-lg overflow-hidden group cursor-pointer"
+                          onClick={() => {
+                            setLightboxSrc(fullPhotoUrl);
+                            setLightboxAlt("Journal attachment");
+                          }}
+                        >
+                          <img
+                            src={fullPhotoUrl}
+                            alt="Journal attachment"
+                            className="w-full h-[80px] object-cover rounded-lg transition-opacity group-hover:opacity-80"
+                            loading="lazy"
+                          />
+                          {/* Expand hint overlay */}
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="bg-black/60 text-white rounded-full p-1.5">
+                              <Expand size={14} />
+                            </span>
+                          </div>
+                        </div>
                       )}
 
                       <div className="flex items-center justify-between">

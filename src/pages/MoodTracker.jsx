@@ -1,8 +1,9 @@
+// client/src/pages/MoodTracker.jsx
 import { useState, useEffect, useRef } from "react";
 import AppShell from "../components/AppShell";
 import api from "../api/axios";
 import toast from "react-hot-toast";
-import { Trash2, Camera, Calendar, Activity, X } from "lucide-react";
+import { Trash2, Camera, Calendar, X, Expand } from "lucide-react";
 
 const EMOJIS = ["😢", "🙁", "😐", "🙂", "😁"];
 const LABELS = ["Awful", "Bad", "Okay", "Good", "Great"];
@@ -19,6 +20,55 @@ const ALL_TAGS = [
   "Overwhelmed",
 ];
 
+// ─── Helpers ──────────────────────────────────────────────────
+const todayStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+/** Prefix relative /uploads/... paths with the server base URL */
+const resolvePhotoUrl = (url) => {
+  if (!url) return null;
+  if (url.startsWith("http")) return url;
+  const base = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  return `${base}${url}`;
+};
+
+// ─── Lightbox ─────────────────────────────────────────────────
+function Lightbox({ src, alt, onClose }) {
+  useEffect(() => {
+    const handler = (e) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="relative max-w-[90vw] max-h-[90vh] rounded-xl overflow-hidden shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <img
+          src={src}
+          alt={alt}
+          className="block max-w-[90vw] max-h-[85vh] object-contain"
+        />
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 border-none cursor-pointer transition-colors"
+          aria-label="Close photo"
+        >
+          <X size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Component ────────────────────────────────────────────────
 export default function MoodTracker() {
   const [selectedEmoji, setSelectedEmoji] = useState(null);
   const [score, setScore] = useState(5);
@@ -28,6 +78,12 @@ export default function MoodTracker() {
   const [photoPreview, setPhotoPreview] = useState(null);
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [entryDate, setEntryDate] = useState(todayStr());
+
+  // Lightbox state
+  const [lightboxSrc, setLightboxSrc] = useState(null);
+  const [lightboxAlt, setLightboxAlt] = useState("");
+
   const fileRef = useRef(null);
 
   const fetchData = async () => {
@@ -68,35 +124,26 @@ export default function MoodTracker() {
       return toast.error("Please select how you feel");
     setLoading(true);
     try {
-      if (photo) {
-        const formData = new FormData();
-        formData.append("emoji", EMOJIS[selectedEmoji]);
-        formData.append("score", score);
-        formData.append("label", LABELS[selectedEmoji]);
-        formData.append("note", note);
-        formData.append("tags", JSON.stringify(activeTags));
-        formData.append("photo", photo);
+      const formData = new FormData();
+      formData.append("emoji", EMOJIS[selectedEmoji]);
+      formData.append("score", score);
+      formData.append("label", LABELS[selectedEmoji]);
+      formData.append("note", note);
+      formData.append("tags", JSON.stringify(activeTags));
+      formData.append("entryDate", entryDate);
+      if (photo) formData.append("photo", photo);
 
-        await api.post("/api/moods", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-      } else {
-        await api.post("/api/moods", {
-          emoji: EMOJIS[selectedEmoji],
-          score: score,
-          label: LABELS[selectedEmoji],
-          note: note,
-          tags: JSON.stringify(activeTags),
-        });
-      }
+      await api.post("/api/moods", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
       toast.success("Mood entry saved!");
-
       setSelectedEmoji(null);
       setScore(5);
       setNote("");
       setActiveTags([]);
       clearPhoto();
+      setEntryDate(todayStr());
       fetchData();
     } catch (err) {
       console.error(err);
@@ -119,6 +166,15 @@ export default function MoodTracker() {
 
   return (
     <AppShell>
+      {/* Lightbox overlay */}
+      {lightboxSrc && (
+        <Lightbox
+          src={lightboxSrc}
+          alt={lightboxAlt}
+          onClose={() => setLightboxSrc(null)}
+        />
+      )}
+
       <div className="max-w-7xl mx-auto w-full font-sans">
         <div className="mb-6">
           <h1 className="font-heading text-[28px] sm:text-[32px] font-bold text-theme-dark">
@@ -129,7 +185,6 @@ export default function MoodTracker() {
           </p>
         </div>
 
-        {/* Responsive Grid: Stacks on mobile, splits into 2 columns on large screens */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
           {/* LEFT COLUMN: Input Form */}
           <div className="flex flex-col gap-6">
@@ -200,7 +255,37 @@ export default function MoodTracker() {
                   placeholder="Why do you feel this way today?"
                   className="w-full bg-theme-input border border-transparent rounded-[4px] p-4 text-[14px] text-theme-dark focus:bg-white focus:border-theme-blue focus:outline-none transition-colors resize-none mb-4"
                   rows="3"
-                ></textarea>
+                />
+
+                {/* ── Entry Date Picker ─────────────────────────────── */}
+                <div className="mb-6">
+                  <p className="text-[14px] font-semibold text-theme-dark mb-2">
+                    Entry date
+                  </p>
+                  <div className="flex items-center gap-3 bg-theme-input rounded-[4px] px-4 py-3 border border-transparent focus-within:border-theme-blue focus-within:bg-white transition-colors">
+                    <Calendar
+                      size={16}
+                      className="text-theme-body flex-shrink-0"
+                    />
+                    <input
+                      type="date"
+                      value={entryDate}
+                      max={todayStr()}
+                      onChange={(e) => {
+                        if (e.target.value) setEntryDate(e.target.value);
+                      }}
+                      className="flex-1 bg-transparent border-none text-[14px] text-theme-dark focus:outline-none cursor-pointer"
+                    />
+                    {entryDate !== todayStr() && (
+                      <button
+                        onClick={() => setEntryDate(todayStr())}
+                        className="text-[12px] text-theme-blue font-semibold bg-white border border-theme-border rounded-full px-3 py-1 cursor-pointer hover:bg-theme-light transition-colors whitespace-nowrap"
+                      >
+                        Reset to today
+                      </button>
+                    )}
+                  </div>
+                </div>
 
                 {/* Photo Upload */}
                 <div className="mb-6">
@@ -251,9 +336,6 @@ export default function MoodTracker() {
           <div className="flex flex-col gap-6">
             {/* Overview Card */}
             <div className="bg-white rounded-[10px] border border-theme-border shadow-card p-6 flex items-center gap-4">
-              {/* <div className="w-[60px] h-[60px] bg-[#EAFEFF] rounded-full flex items-center justify-center text-[#448BB7] flex-shrink-0">
-                <Activity size={28} />
-              </div> */}
               <div>
                 <h2 className="font-heading text-[24px] font-bold text-theme-dark leading-none mb-1">
                   Your History
@@ -279,70 +361,89 @@ export default function MoodTracker() {
                     No moods logged yet.
                   </div>
                 ) : (
-                  entries.map((entry) => (
-                    <div
-                      key={entry.id}
-                      className="border border-gray-100 rounded-[8px] p-4 hover:shadow-card-soft transition-shadow bg-white relative group"
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center gap-3">
-                          <span className="text-[32px] leading-none">
-                            {entry.emoji}
-                          </span>
-                          <div>
-                            <p className="text-[15px] font-bold text-theme-dark">
-                              {entry.label}
-                            </p>
-                            <p className="text-[12px] text-gray-400">
-                              {new Date(entry.createdat).toLocaleString(
-                                "en-MY",
-                                {
-                                  weekday: "short",
-                                  day: "numeric",
-                                  month: "short",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                },
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => handleDelete(entry.id)}
-                          className="text-gray-300 hover:text-theme-red p-2 bg-transparent border-none cursor-pointer opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-
-                      {entry.tags && entry.tags !== "[]" && (
-                        <div className="flex flex-wrap gap-1.5 mb-3">
-                          {JSON.parse(entry.tags).map((tag, i) => (
-                            <span
-                              key={i}
-                              className="px-2 py-1 bg-theme-light text-theme-body text-[11px] font-bold rounded-[4px]"
-                            >
-                              {tag}
+                  entries.map((entry) => {
+                    const fullPhotoUrl = resolvePhotoUrl(entry.photourl);
+                    return (
+                      <div
+                        key={entry.id}
+                        className="border border-gray-100 rounded-[8px] p-4 hover:shadow-card-soft transition-shadow bg-white relative group"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-3">
+                            <span className="text-[32px] leading-none">
+                              {entry.emoji}
                             </span>
-                          ))}
+                            <div>
+                              <p className="text-[15px] font-bold text-theme-dark">
+                                {entry.label}
+                              </p>
+                              <p className="text-[12px] text-gray-400">
+                                {new Date(entry.createdat).toLocaleString(
+                                  "en-MY",
+                                  {
+                                    weekday: "short",
+                                    day: "numeric",
+                                    month: "short",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  },
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleDelete(entry.id)}
+                            className="text-gray-300 hover:text-theme-red p-2 bg-transparent border-none cursor-pointer opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Trash2 size={18} />
+                          </button>
                         </div>
-                      )}
 
-                      {entry.note && (
-                        <p className="text-[13px] text-gray-600 bg-gray-50 p-3 rounded-[6px] italic border-l-2 border-theme-blue">
-                          "{entry.note}"
-                        </p>
-                      )}
+                        {entry.tags && entry.tags !== "[]" && (
+                          <div className="flex flex-wrap gap-1.5 mb-3">
+                            {JSON.parse(entry.tags).map((tag, i) => (
+                              <span
+                                key={i}
+                                className="px-2 py-1 bg-theme-light text-theme-body text-[11px] font-bold rounded-[4px]"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
 
-                      {entry.photourl && (
-                        <img
-                          src={`http://localhost:5000${entry.photourl}`}
-                          alt="Mood"
-                          className="mt-3 w-full h-[150px] object-cover rounded-[6px]"
-                        />
-                      )}
-                    </div>
-                  ))
+                        {entry.note && (
+                          <p className="text-[13px] text-gray-600 bg-gray-50 p-3 rounded-[6px] italic border-l-2 border-theme-blue">
+                            "{entry.note}"
+                          </p>
+                        )}
+
+                        {/* ── Photo thumbnail + lightbox ── */}
+                        {fullPhotoUrl && (
+                          <div
+                            className="relative mt-3 rounded-[6px] overflow-hidden cursor-pointer group/photo"
+                            onClick={() => {
+                              setLightboxSrc(fullPhotoUrl);
+                              setLightboxAlt(`${entry.label} mood photo`);
+                            }}
+                          >
+                            <img
+                              src={fullPhotoUrl}
+                              alt="Mood"
+                              className="w-full h-[150px] object-cover rounded-[6px] transition-opacity group-hover/photo:opacity-80"
+                              loading="lazy"
+                            />
+                            {/* Expand hint overlay */}
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/photo:opacity-100 transition-opacity">
+                              <span className="bg-black/60 text-white rounded-full p-2">
+                                <Expand size={18} />
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </div>

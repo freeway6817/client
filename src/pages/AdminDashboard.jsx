@@ -6,7 +6,6 @@ import {
   ShieldCheck,
   FileText,
   Quote,
-  Megaphone,
   PenTool,
   ArrowLeft,
   LogOut,
@@ -26,14 +25,12 @@ const emptyForms = {
     isactive: true,
   },
   affirmations: { content: "", isactive: true },
-  announcements: { title: "", content: "", isactive: true },
   prompts: { text: "", tag: "", isactive: true },
 };
 
 const TABS = [
   { key: "resources", label: "Resources", icon: FileText },
   { key: "affirmations", label: "Affirmations", icon: Quote },
-  { key: "announcements", label: "Announcements", icon: Megaphone },
   { key: "prompts", label: "Journal Prompts", icon: PenTool },
 ];
 
@@ -45,7 +42,6 @@ export default function AdminDashboard() {
   const [data, setData] = useState({
     resources: [],
     affirmations: [],
-    announcements: [],
     prompts: [],
   });
   const [form, setForm] = useState(emptyForms);
@@ -57,7 +53,6 @@ export default function AdminDashboard() {
     () => ({
       resources: "/api/admin/resources",
       affirmations: "/api/admin/affirmations",
-      announcements: "/api/admin/announcements",
       prompts: "/api/admin/journal-prompts",
     }),
     [],
@@ -66,18 +61,15 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [resources, affirmations, announcements, prompts] =
-          await Promise.all([
-            api.get(endpoints.resources),
-            api.get(endpoints.affirmations),
-            api.get(endpoints.announcements),
-            api.get(endpoints.prompts),
-          ]);
+        const [resources, affirmations, prompts] = await Promise.all([
+          api.get(endpoints.resources),
+          api.get(endpoints.affirmations),
+          api.get(endpoints.prompts),
+        ]);
 
         setData({
           resources: resources.data,
           affirmations: affirmations.data,
-          announcements: announcements.data,
           prompts: prompts.data,
         });
       } catch {
@@ -123,15 +115,6 @@ export default function AdminDashboard() {
       setForm((prev) => ({
         ...prev,
         affirmations: {
-          content: item.content || "",
-          isactive: item.isactive !== false,
-        },
-      }));
-    } else if (tab === "announcements") {
-      setForm((prev) => ({
-        ...prev,
-        announcements: {
-          title: item.title || "",
           content: item.content || "",
           isactive: item.isactive !== false,
         },
@@ -193,7 +176,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex flex-col h-screen w-full bg-[#F0F2F5] font-sans">
-      {/* Custom Admin Top Navigation Bar */}
+      {/* Header */}
       <header className="flex justify-between items-center bg-white p-4 px-6 border-b border-[#E0D8F0] shadow-sm flex-shrink-0">
         <div className="flex items-center gap-3">
           <ShieldCheck size={22} className="text-[#3498DB]" />
@@ -226,9 +209,9 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      {/* Main Content Area */}
+      {/* Main */}
       <main className="flex-1 overflow-hidden p-4 md:p-6 max-w-6xl mx-auto w-full flex flex-col gap-4">
-        {/* Tab Navigation */}
+        {/* Tabs */}
         <div className="flex gap-2 flex-shrink-0">
           {TABS.map((tabItem) => {
             const TabIcon = tabItem.icon;
@@ -254,7 +237,7 @@ export default function AdminDashboard() {
 
         {/* Two-column layout */}
         <div className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr] gap-4 flex-1 overflow-hidden min-h-0">
-          {/* LEFT COLUMN: Form */}
+          {/* LEFT: Form */}
           <div className="bg-white rounded-xl border border-[#B39DDB] flex flex-col overflow-hidden min-h-0 shadow-sm">
             <div className="px-4 py-3 text-[12px] font-bold text-[#512DA8] bg-[#EDE7F6] flex-shrink-0 border-b border-[#B39DDB]">
               {editingId ? "Edit Item" : "Create New Item"}
@@ -318,24 +301,6 @@ export default function AdminDashboard() {
                 />
               )}
 
-              {tab === "announcements" && (
-                <>
-                  <input
-                    className={inputClasses}
-                    placeholder="Announcement Title *"
-                    value={currentForm.title}
-                    onChange={(e) => updateField("title", e.target.value)}
-                  />
-                  <textarea
-                    className={inputClasses}
-                    rows="6"
-                    placeholder="Announcement Content *"
-                    value={currentForm.content}
-                    onChange={(e) => updateField("content", e.target.value)}
-                  />
-                </>
-              )}
-
               {tab === "prompts" && (
                 <>
                   <textarea
@@ -390,7 +355,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* RIGHT COLUMN: List */}
+          {/* RIGHT: List */}
           <div className="bg-white rounded-xl border border-[#B39DDB] flex flex-col overflow-hidden min-h-0 shadow-sm">
             <div className="px-4 py-3 text-[12px] font-bold text-[#512DA8] bg-[#EDE7F6] flex-shrink-0 border-b border-[#B39DDB] flex justify-between items-center">
               <span>Database Items</span>
@@ -454,7 +419,6 @@ export default function AdminDashboard() {
                         </div>
                       </div>
 
-                      {/* Actions */}
                       <div className="flex flex-col items-center gap-1.5">
                         <button
                           onClick={() => startEdit(item)}
@@ -480,7 +444,7 @@ export default function AdminDashboard() {
         </div>
       </main>
 
-      {/* Admin Footer */}
+      {/* Footer */}
       <footer className="py-3 text-center text-[10px] font-medium text-[#7A9AB8] border-t border-[#E0D8F0] bg-white flex-shrink-0">
         UNIMAS Mental Health & Well-Being Platform • Administrator Dashboard
       </footer>

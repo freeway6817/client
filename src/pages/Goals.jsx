@@ -7,21 +7,18 @@ import { Plus, Trash2, X } from "lucide-react";
 
 const CATEGORY_META = {
   exercise: {
-    // icon: "🏃",
     color: "#FF6B6B",
     bg: "#FFD6D6",
     border: "#FF6B6B",
     label: "Exercise Goal",
   },
   sleep: {
-    // icon: "😴",
     color: "#42A5F5",
     bg: "#D6EAFF",
     border: "#42A5F5",
     label: "Sleep Goal",
   },
   mental_health: {
-    // icon: "🧠",
     color: "#AB47BC",
     bg: "#EDD6FF",
     border: "#AB47BC",
@@ -114,29 +111,27 @@ export default function Goals() {
   return (
     <AppShell>
       <div className="flex flex-col gap-3 h-full">
-        {/* Header */}
+        {/* ── Header ───────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between flex-shrink-0">
           <div>
-            {/* <h1 className="text-[17px] font-bold text-navy">My Goals</h1> */}
-            <h1 className="text-[17px] font-bold text-navy">My Goals</h1>
-
-            <p className="text-[10px] text-gray-500 mt-0.5">
+            <h1 className="text-lg font-bold text-navy">My Goals</h1>
+            <p className="text-sm text-gray-500 mt-0.5">
               Set targets, track progress, and maintain streaks
             </p>
           </div>
           {maxStreak > 0 && (
             <div className="bg-[#FF9800] text-white rounded-xl px-4 py-2 text-center">
-              <div className="text-[8px] font-bold uppercase tracking-wider opacity-80">
+              <div className="text-xs font-bold uppercase tracking-wider opacity-80">
                 Current Streak
               </div>
-              <div className="text-[20px] font-bold leading-tight">
+              <div className="text-xl font-bold leading-tight">
                 🔥 {maxStreak} Days
               </div>
             </div>
           )}
         </div>
 
-        {/* Category Cards + Add Button */}
+        {/* ── Category Cards + Add Button ───────────────────────────────────── */}
         <div className="flex gap-3 flex-shrink-0">
           {Object.entries(CATEGORY_META).map(([key, meta]) => (
             <button
@@ -145,40 +140,36 @@ export default function Goals() {
                 setSelCategory(key);
                 setShowModal(true);
               }}
-              className={`flex-1 bg-white border-[1.5px] rounded-xl p-3 text-left cursor-pointer transition-all hover:shadow-md
-                ${selCategory === key ? `border-[${meta.border}] shadow-md` : "border-gray-200"}`}
+              className="flex-1 bg-white border-[1.5px] rounded-xl p-3 text-left cursor-pointer transition-all hover:shadow-md"
               style={{
                 borderColor: selCategory === key ? meta.border : "#E0E0E0",
               }}
             >
-              <div className="text-2xl mb-1">{meta.icon}</div>
-              <div className="text-[11px] font-bold text-gray-800">
+              <div className="text-sm font-bold text-gray-800 mb-0.5">
                 {key.charAt(0).toUpperCase() + key.slice(1).replace("_", " ")}
               </div>
-              <div className="text-[9px] text-gray-500">
+              <div className="text-xs text-gray-500">
                 {CATEGORY_DESCRIPTIONS[key]}
               </div>
             </button>
           ))}
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 bg-navy text-white border-none rounded-xl px-5 py-3 text-[11px] font-bold cursor-pointer hover:bg-[#0c2e4e] transition-colors"
+            className="flex items-center gap-2 bg-navy text-white border-none rounded-xl px-5 py-3 text-sm font-bold cursor-pointer hover:bg-[#0c2e4e] transition-colors"
           >
-            <Plus size={14} /> Set New Goal
+            <Plus size={15} /> Set New Goal
           </button>
         </div>
 
-        {/* Active Goals List */}
+        {/* ── Active Goals List ─────────────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto">
-          <h2 className="text-[12px] font-bold text-gray-600 mb-2">
-            Active Goals
-          </h2>
+          <h2 className="text-sm font-bold text-gray-600 mb-2">Active Goals</h2>
 
           {goals.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-gray-400">
               <div className="text-5xl mb-3"></div>
-              <p className="text-[13px] font-semibold">No goals yet</p>
-              <p className="text-[11px] mt-1">
+              <p className="text-sm font-semibold">No goals yet</p>
+              <p className="text-xs mt-1">
                 Click a category above to set your first goal.
               </p>
             </div>
@@ -195,11 +186,11 @@ export default function Goals() {
                   >
                     {/* Progress bar header */}
                     <div
-                      className="px-4 py-1.5"
+                      className="px-4 py-2"
                       style={{ backgroundColor: meta.bg }}
                     >
-                      <div className="flex justify-between items-center text-[9px] font-bold mb-1">
-                        <span>{goal.title}</span>
+                      <div className="flex justify-between items-center text-xs font-bold mb-1">
+                        <span className="text-gray-800">{goal.title}</span>
                         <span style={{ color: meta.color }}>
                           {goal.progress}% completed
                         </span>
@@ -217,12 +208,11 @@ export default function Goals() {
 
                     <div className="p-3">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-lg">{meta.icon}</span>
-                        <span className="text-[11px] font-bold text-gray-700">
+                        <span className="text-sm font-bold text-gray-700">
                           {meta.label}
                         </span>
                         {goal.target && (
-                          <span className="text-[9px] text-gray-400">
+                          <span className="text-xs text-gray-400">
                             • {goal.target}
                           </span>
                         )}
@@ -235,20 +225,18 @@ export default function Goals() {
                           { label: "Streak", value: `${goal.streak} days` },
                           {
                             label: "Status",
-                            value:
-                              // goal.progress >= 100 ? "✅ Done" : "🟡 Active",
-                              goal.progress >= 100 ? "Done" : "Active",
+                            value: goal.progress >= 100 ? "Done" : "Active",
                           },
                         ].map((s) => (
                           <div
                             key={s.label}
                             className="bg-[#F8F9FA] rounded-lg p-2 text-center"
                           >
-                            <div className="text-[8px] text-gray-400">
+                            <div className="text-xs text-gray-400 mb-0.5">
                               {s.label}
                             </div>
                             <div
-                              className="text-[13px] font-bold"
+                              className="text-sm font-bold tabular-nums"
                               style={{ color: meta.color }}
                             >
                               {s.value}
@@ -259,7 +247,7 @@ export default function Goals() {
 
                       {/* Controls */}
                       <div className="flex items-center gap-2">
-                        <label className="text-[9px] text-gray-500 flex-shrink-0">
+                        <label className="text-xs text-gray-500 flex-shrink-0">
                           Progress:
                         </label>
                         <input
@@ -277,7 +265,7 @@ export default function Goals() {
                           style={{ accentColor: meta.color }}
                         />
                         <span
-                          className="text-[9px] font-bold w-8 text-right"
+                          className="text-xs font-bold w-8 text-right tabular-nums"
                           style={{ color: meta.color }}
                         >
                           {goal.progress}%
@@ -286,17 +274,17 @@ export default function Goals() {
                           onClick={() =>
                             handleStreakIncrement(goal.id, goal.streak)
                           }
-                          className="text-[9px] font-bold text-white border-none rounded-md px-2.5 py-1.5 cursor-pointer hover:opacity-80 transition-opacity"
+                          className="text-xs font-bold text-white border-none rounded-md px-2.5 py-1.5 cursor-pointer hover:opacity-80 transition-opacity"
                           style={{ backgroundColor: meta.color }}
                         >
-                          {/* 🔥 +Streak */}
                           +Streak
                         </button>
                         <button
                           onClick={() => handleDelete(goal.id)}
                           className="text-gray-300 hover:text-[#EF5350] transition-colors border-none bg-transparent cursor-pointer p-1"
+                          aria-label="Delete goal"
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </div>
@@ -308,15 +296,16 @@ export default function Goals() {
         </div>
       </div>
 
-      {/* Create Goal Modal */}
+      {/* ── Create Goal Modal ─────────────────────────────────────────────────── */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl w-[420px] shadow-2xl overflow-hidden">
+          <div className="bg-white rounded-2xl w-[440px] shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 bg-navy text-white">
-              <h3 className="text-[14px] font-bold">Set New Goal</h3>
+              <h3 className="text-base font-bold">Set New Goal</h3>
               <button
                 onClick={() => setShowModal(false)}
                 className="border-none bg-transparent text-white cursor-pointer hover:opacity-70"
+                aria-label="Close modal"
               >
                 <X size={18} />
               </button>
@@ -324,7 +313,7 @@ export default function Goals() {
             <div className="p-5 flex flex-col gap-4">
               {/* Category selector */}
               <div>
-                <label className="text-[10px] font-bold text-gray-600 block mb-2">
+                <label className="text-sm font-bold text-gray-600 block mb-2">
                   Goal Category
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -333,7 +322,11 @@ export default function Goals() {
                       key={key}
                       onClick={() => setSelCategory(key)}
                       className={`p-2.5 rounded-lg border-[1.5px] text-center cursor-pointer transition-all
-                        ${selCategory === key ? "border-current text-white" : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}
+                        ${
+                          selCategory === key
+                            ? "border-current text-white"
+                            : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                        }`}
                       style={
                         selCategory === key
                           ? {
@@ -343,8 +336,7 @@ export default function Goals() {
                           : {}
                       }
                     >
-                      <div className="text-xl mb-0.5">{meta.icon}</div>
-                      <div className="text-[9px] font-bold">
+                      <div className="text-xs font-bold mt-0.5">
                         {key.replace("_", " ")}
                       </div>
                     </button>
@@ -354,8 +346,8 @@ export default function Goals() {
 
               {/* Title */}
               <div>
-                <label className="text-[10px] font-bold text-gray-600 block mb-1">
-                  Goal Title *
+                <label className="text-sm font-bold text-gray-600 block mb-1">
+                  Goal Title <span className="text-red-400">*</span>
                 </label>
                 <input
                   value={form.title}
@@ -367,20 +359,20 @@ export default function Goals() {
                         ? "e.g. Sleep 7–8 hours every night"
                         : "e.g. Meditate 10 minutes daily"
                   }
-                  className="w-full bg-[#F8F9FA] border border-gray-300 rounded-lg px-3 py-2.5 text-[11px] text-gray-800"
+                  className="w-full bg-[#F8F9FA] border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-navy/30"
                 />
               </div>
 
               {/* Target */}
               <div>
-                <label className="text-[10px] font-bold text-gray-600 block mb-1">
+                <label className="text-sm font-bold text-gray-600 block mb-1">
                   Target Details
                 </label>
                 <input
                   value={form.target}
                   onChange={(e) => setForm({ ...form, target: e.target.value })}
                   placeholder="e.g. 30 days duration, 3x per week"
-                  className="w-full bg-[#F8F9FA] border border-gray-300 rounded-lg px-3 py-2.5 text-[11px] text-gray-800"
+                  className="w-full bg-[#F8F9FA] border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-navy/30"
                 />
               </div>
 
@@ -388,14 +380,14 @@ export default function Goals() {
               <div className="flex gap-2 pt-1">
                 <button
                   onClick={() => setShowModal(false)}
-                  className="flex-1 py-2.5 bg-gray-100 text-gray-600 border-none rounded-lg text-[11px] cursor-pointer hover:bg-gray-200 transition-colors"
+                  className="flex-1 py-2.5 bg-gray-100 text-gray-600 border-none rounded-lg text-sm cursor-pointer hover:bg-gray-200 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleCreate}
                   disabled={loading}
-                  className="flex-1 py-2.5 bg-navy text-white border-none rounded-lg text-[11px] font-bold cursor-pointer disabled:opacity-50 hover:bg-[#0c2e4e] transition-colors"
+                  className="flex-1 py-2.5 bg-navy text-white border-none rounded-lg text-sm font-bold cursor-pointer disabled:opacity-50 hover:bg-[#0c2e4e] transition-colors"
                 >
                   {loading ? "Creating..." : "+ Create Goal"}
                 </button>

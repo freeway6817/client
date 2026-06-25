@@ -7,6 +7,14 @@ import toast from "react-hot-toast";
 import { Trash2, Camera, X, CalendarDays, Expand } from "lucide-react";
 import { resolveMediaUrl } from "../api/axios";
 
+// Tiptap — do NOT import Underline separately; StarterKit includes it
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import TextAlign from "@tiptap/extension-text-align";
+import Placeholder from "@tiptap/extension-placeholder";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
 const TAG_COLORS = {
   Gratitude: { bg: "#FFF9C4", text: "#F57F17", border: "#FFD54F" },
   Mindfulness: { bg: "#E8F5E9", text: "#2E7D32", border: "#81C784" },
@@ -29,9 +37,192 @@ const toLocalDateStr = (date) => {
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 };
-
 const todayStr = () => toLocalDateStr(new Date());
 const entryDateStr = (createdat) => toLocalDateStr(new Date(createdat));
+
+// ─── Toolbar Button ────────────────────────────────────────────────────────────
+
+function ToolbarBtn({ onClick, active, title, children, disabled = false }) {
+  return (
+    <button
+      type="button"
+      onMouseDown={(e) => {
+        e.preventDefault();
+        onClick();
+      }}
+      disabled={disabled}
+      title={title}
+      className={`
+        w-7 h-7 flex items-center justify-center rounded text-sm font-bold
+        border-none cursor-pointer transition-colors select-none
+        ${
+          active
+            ? "bg-[#7E57C2] text-white"
+            : "bg-transparent text-gray-600 hover:bg-[#EDE7F6] hover:text-[#512DA8]"
+        }
+        ${disabled ? "opacity-30 cursor-not-allowed" : ""}
+      `}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ─── Rich Text Toolbar ─────────────────────────────────────────────────────────
+
+function RichToolbar({ editor }) {
+  if (!editor || editor.isDestroyed) return null;
+
+  // Safe wrappers to avoid calling .can() before editor is fully ready
+  const canUndo = () => {
+    try {
+      return editor.can().undo();
+    } catch {
+      return false;
+    }
+  };
+  const canRedo = () => {
+    try {
+      return editor.can().redo();
+    } catch {
+      return false;
+    }
+  };
+
+  const groups = [
+    [
+      {
+        label: <b>B</b>,
+        title: "Bold (Ctrl+B)",
+        active: editor.isActive("bold"),
+        action: () => editor.chain().focus().toggleBold().run(),
+      },
+      {
+        label: <i>I</i>,
+        title: "Italic (Ctrl+I)",
+        active: editor.isActive("italic"),
+        action: () => editor.chain().focus().toggleItalic().run(),
+      },
+      {
+        label: <u>U</u>,
+        title: "Underline (Ctrl+U)",
+        active: editor.isActive("underline"),
+        action: () => editor.chain().focus().toggleUnderline().run(),
+      },
+      {
+        label: <s>S</s>,
+        title: "Strikethrough",
+        active: editor.isActive("strike"),
+        action: () => editor.chain().focus().toggleStrike().run(),
+      },
+    ],
+    [
+      {
+        label: "H1",
+        title: "Heading 1",
+        active: editor.isActive("heading", { level: 1 }),
+        action: () => editor.chain().focus().toggleHeading({ level: 1 }).run(),
+      },
+      {
+        label: "H2",
+        title: "Heading 2",
+        active: editor.isActive("heading", { level: 2 }),
+        action: () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
+      },
+      {
+        label: "H3",
+        title: "Heading 3",
+        active: editor.isActive("heading", { level: 3 }),
+        action: () => editor.chain().focus().toggleHeading({ level: 3 }).run(),
+      },
+    ],
+    [
+      {
+        label: "≡",
+        title: "Bullet List",
+        active: editor.isActive("bulletList"),
+        action: () => editor.chain().focus().toggleBulletList().run(),
+      },
+      {
+        label: "1.",
+        title: "Ordered List",
+        active: editor.isActive("orderedList"),
+        action: () => editor.chain().focus().toggleOrderedList().run(),
+      },
+      {
+        label: "❝",
+        title: "Blockquote",
+        active: editor.isActive("blockquote"),
+        action: () => editor.chain().focus().toggleBlockquote().run(),
+      },
+    ],
+    [
+      {
+        label: "⬛L",
+        title: "Align Left",
+        active: editor.isActive({ textAlign: "left" }),
+        action: () => editor.chain().focus().setTextAlign("left").run(),
+      },
+      {
+        label: "⬛C",
+        title: "Align Center",
+        active: editor.isActive({ textAlign: "center" }),
+        action: () => editor.chain().focus().setTextAlign("center").run(),
+      },
+      {
+        label: "⬛R",
+        title: "Align Right",
+        active: editor.isActive({ textAlign: "right" }),
+        action: () => editor.chain().focus().setTextAlign("right").run(),
+      },
+    ],
+    [
+      {
+        label: "—",
+        title: "Horizontal Rule",
+        active: false,
+        action: () => editor.chain().focus().setHorizontalRule().run(),
+      },
+      {
+        label: "↩",
+        title: "Undo (Ctrl+Z)",
+        active: false,
+        action: () => editor.chain().focus().undo().run(),
+        disabled: !canUndo(),
+      },
+      {
+        label: "↪",
+        title: "Redo (Ctrl+Y)",
+        active: false,
+        action: () => editor.chain().focus().redo().run(),
+        disabled: !canRedo(),
+      },
+    ],
+  ];
+
+  return (
+    <div className="flex flex-wrap items-center gap-1 px-2 py-1.5 bg-[#F3EEF9] border-b border-[#B39DDB] rounded-t-lg">
+      {groups.map((group, gi) => (
+        <div key={gi} className="flex items-center gap-0.5">
+          {gi > 0 && <div className="w-px h-4 bg-[#B39DDB] mx-1" />}
+          {group.map((btn, bi) => (
+            <ToolbarBtn
+              key={bi}
+              onClick={btn.action}
+              active={btn.active}
+              title={btn.title}
+              disabled={btn.disabled}
+            >
+              {btn.label}
+            </ToolbarBtn>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Sub-components ────────────────────────────────────────────────────────────
 
 function Lightbox({ src, alt, onClose }) {
   useEffect(() => {
@@ -79,12 +270,13 @@ function PromptSkeleton() {
   );
 }
 
+// ─── Main Component ────────────────────────────────────────────────────────────
+
 export default function Journal() {
   const [entries, setEntries] = useState([]);
   const [prompts, setPrompts] = useState([]);
   const [promptsLoading, setPromptsLoading] = useState(true);
   const [selectedPrompt, setSelectedPrompt] = useState(null);
-  const [content, setContent] = useState("");
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -94,10 +286,37 @@ export default function Journal() {
   const [lightboxAlt, setLightboxAlt] = useState("");
 
   const fileRef = useRef(null);
-
   const { alertOpen, alertReason, triggerAlert, dismissAlert } =
     useCrisisAlert();
 
+  // ── Tiptap editor ──────────────────────────────────────────────────────────
+  const editor = useEditor({
+    extensions: [
+      // StarterKit already includes: Bold, Italic, Strike, Code, Heading,
+      // BulletList, OrderedList, Blockquote, HorizontalRule, History (undo/redo)
+      // It also bundles Underline — do NOT add Underline separately
+      StarterKit,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Placeholder.configure({
+        placeholder: () =>
+          selectedPrompt
+            ? `Respond to: "${selectedPrompt.prompt.substring(0, 60)}..."`
+            : "Start writing your thoughts freely...",
+      }),
+    ],
+    editorProps: {
+      attributes: {
+        class:
+          "journal-editor min-h-[180px] px-4 py-3 text-sm text-gray-800 leading-relaxed focus:outline-none",
+      },
+    },
+  });
+
+  const wordCount = editor
+    ? editor.getText().trim().split(/\s+/).filter(Boolean).length
+    : 0;
+
+  // ── Data fetching ──────────────────────────────────────────────────────────
   const fetchPrompts = async () => {
     try {
       setPromptsLoading(true);
@@ -124,18 +343,14 @@ export default function Journal() {
     fetchEntries();
   }, []);
 
+  // ── Derived values ─────────────────────────────────────────────────────────
   const filteredEntries = entries.filter(
     (e) => entryDateStr(e.createdat) === filterDate,
   );
 
   const filterDateLabel = new Date(filterDate + "T00:00:00").toLocaleDateString(
     "en-MY",
-    {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    },
+    { weekday: "short", day: "numeric", month: "short", year: "numeric" },
   );
 
   const entryDates = [
@@ -145,6 +360,7 @@ export default function Journal() {
     ? entryDates.reduce((a, b) => (a < b ? a : b))
     : todayStr();
 
+  // ── Handlers ───────────────────────────────────────────────────────────────
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -156,17 +372,18 @@ export default function Journal() {
     setPhotoPreview(URL.createObjectURL(file));
   };
 
-  const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
-
   const handleSave = async () => {
-    if (!content.trim()) {
+    const htmlContent = editor?.getHTML() ?? "";
+    const plainText = editor?.getText().trim() ?? "";
+    if (!plainText) {
       toast.error("Write something before saving");
       return;
     }
+
     setLoading(true);
     try {
       const formData = new FormData();
-      formData.append("content", content.trim());
+      formData.append("content", htmlContent);
       formData.append("entryDate", entryDate);
       if (selectedPrompt) {
         formData.append(
@@ -180,13 +397,10 @@ export default function Journal() {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      // ── Crisis keyword detection response ──────────────────
-      if (res.data?.showCrisisAlert) {
-        triggerAlert("journal_keyword");
-      }
+      if (res.data?.showCrisisAlert) triggerAlert("journal_keyword");
 
       toast.success("Journal entry saved!");
-      setContent("");
+      editor?.commands.clearContent();
       setSelectedPrompt(null);
       setPhoto(null);
       setPhotoPreview(null);
@@ -216,8 +430,54 @@ export default function Journal() {
     return { icon: "✍️", label: "Text", color: "#43A047", bg: "#E8F5E9" };
   };
 
+  const isHtml = (str) => /<[a-z][\s\S]*>/i.test(str);
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <AppShell>
+      <style>{`
+        .journal-editor h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; line-height: 1.3; }
+        .journal-editor h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.4rem; line-height: 1.3; }
+        .journal-editor h3 { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.35rem; line-height: 1.3; }
+        .journal-editor p  { margin-bottom: 0.5rem; }
+        .journal-editor p:last-child { margin-bottom: 0; }
+        .journal-editor ul { list-style: disc;    padding-left: 1.25rem; margin-bottom: 0.5rem; }
+        .journal-editor ol { list-style: decimal; padding-left: 1.25rem; margin-bottom: 0.5rem; }
+        .journal-editor li { margin-bottom: 0.2rem; }
+        .journal-editor blockquote {
+          border-left: 3px solid #B39DDB;
+          padding-left: 0.75rem;
+          color: #6A1B9A;
+          font-style: italic;
+          margin: 0.5rem 0;
+        }
+        .journal-editor hr { border: none; border-top: 1.5px solid #E0D8F0; margin: 0.75rem 0; }
+        .journal-editor code {
+          background: #F3EEF9; border-radius: 3px;
+          padding: 0.1em 0.35em; font-size: 0.875em; font-family: monospace;
+        }
+        .journal-editor p.is-editor-empty:first-child::before {
+          content: attr(data-placeholder);
+          float: left; color: #9CA3AF; pointer-events: none; height: 0; font-style: italic;
+        }
+        .entry-content h1, .entry-content h2, .entry-content h3 { font-weight: 700; margin-bottom: 0.25rem; }
+        .entry-content h1 { font-size: 1rem; }
+        .entry-content h2 { font-size: 0.9375rem; }
+        .entry-content h3 { font-size: 0.875rem; }
+        .entry-content p  { margin-bottom: 0.25rem; font-size: 0.875rem; line-height: 1.5; }
+        .entry-content ul { list-style: disc;    padding-left: 1rem; font-size: 0.875rem; }
+        .entry-content ol { list-style: decimal; padding-left: 1rem; font-size: 0.875rem; }
+        .entry-content blockquote {
+          border-left: 2px solid #B39DDB; padding-left: 0.5rem;
+          color: #6A1B9A; font-style: italic; font-size: 0.875rem;
+        }
+        .entry-content strong { font-weight: 700; }
+        .entry-content em     { font-style: italic; }
+        .entry-content u      { text-decoration: underline; }
+        .entry-content s      { text-decoration: line-through; }
+        .entry-content hr     { border: none; border-top: 1px solid #E0D8F0; margin: 0.4rem 0; }
+      `}</style>
+
       {lightboxSrc && (
         <Lightbox
           src={lightboxSrc}
@@ -225,8 +485,6 @@ export default function Journal() {
           onClose={() => setLightboxSrc(null)}
         />
       )}
-
-      {/* ── Crisis Modal ────────────────────────────────────── */}
       <CrisisModal
         isOpen={alertOpen}
         reason={alertReason}
@@ -234,36 +492,35 @@ export default function Journal() {
       />
 
       <div className="flex flex-col gap-3 h-full">
-        {/* Page header */}
+        {/* Page Header */}
         <div className="flex-shrink-0">
-          <h1 className="text-[17px] font-bold text-navy">Journal</h1>
-          <p className="text-[10px] text-gray-500 mt-0.5">
+          <h1 className="text-lg font-bold text-navy">Journal</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
             Reflect, write, and express your thoughts freely
           </p>
         </div>
 
         {/* Two-column layout */}
         <div className="grid grid-cols-1 md:grid-cols-[1fr_320px] gap-3 flex-1 overflow-auto min-h-0">
-          {/* LEFT: Prompts + Write */}
+          {/* ── LEFT ─────────────────────────────────────────────────────── */}
           <div className="flex flex-col gap-3 overflow-y-auto pr-1">
             {/* Journal Prompts */}
             <div className="bg-white rounded-xl border border-[#B39DDB] flex-shrink-0">
-              <div className="px-3.5 py-2.5 text-[12px] font-bold text-[#512DA8] bg-[#EDE7F6] rounded-t-xl flex items-center justify-between">
+              <div className="px-4 py-3 text-sm font-bold text-[#512DA8] bg-[#EDE7F6] rounded-t-xl flex items-center justify-between">
                 <span>Today's Journal Prompts</span>
                 {!promptsLoading && prompts.length > 0 && (
-                  <span className="text-[9px] font-normal text-[#9575CD]">
+                  <span className="text-xs font-normal text-[#9575CD]">
                     {prompts.length} available
                   </span>
                 )}
               </div>
-
               <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {promptsLoading ? (
                   [0, 1, 2, 3].map((i) => <PromptSkeleton key={i} />)
                 ) : prompts.length === 0 ? (
                   <div className="col-span-2 text-center py-6 text-gray-400">
-                    <p className="text-[11px] font-semibold">No prompts yet</p>
-                    <p className="text-[9px] mt-1">
+                    <p className="text-sm font-semibold">No prompts yet</p>
+                    <p className="text-xs mt-1">
                       An admin can add prompts from the Admin Dashboard.
                     </p>
                   </div>
@@ -284,7 +541,7 @@ export default function Journal() {
                       >
                         <div className="flex items-center gap-1.5 mb-1.5">
                           <span
-                            className="text-[8px] font-bold px-2 py-0.5 rounded-full border"
+                            className="text-xs font-bold px-2 py-0.5 rounded-full border"
                             style={{
                               backgroundColor: colors.bg,
                               color: colors.text,
@@ -293,11 +550,11 @@ export default function Journal() {
                           >
                             {p.tag}
                           </span>
-                          <span className="text-[8px] text-gray-400">
+                          <span className="text-xs text-gray-400">
                             Prompt #{p.id}
                           </span>
                         </div>
-                        <p className="text-[9px] text-gray-700 italic leading-[1.5] line-clamp-3">
+                        <p className="text-sm text-gray-700 italic leading-relaxed line-clamp-3">
                           "{p.prompt}"
                         </p>
                       </button>
@@ -309,21 +566,20 @@ export default function Journal() {
 
             {/* Write Your Entry */}
             <div className="bg-white rounded-xl border border-[#B39DDB] flex-shrink-0">
-              <div className="flex items-center justify-between px-3.5 py-2.5 bg-[#EDE7F6] rounded-t-xl">
-                <span className="text-[12px] font-bold text-[#512DA8]">
+              <div className="flex items-center justify-between px-4 py-3 bg-[#EDE7F6] rounded-t-xl">
+                <span className="text-sm font-bold text-[#512DA8]">
                   Write Your Entry
                 </span>
-                <span className="text-[9px] text-gray-500 tabular-nums">
+                <span className="text-xs text-gray-500 tabular-nums">
                   {wordCount} {wordCount === 1 ? "word" : "words"}
                 </span>
               </div>
-
-              <div className="p-3">
-                {/* Entry date picker */}
+              <div className="p-4">
+                {/* Entry date */}
                 <div className="flex items-center gap-2 mb-3 bg-[#FAF8FF] border border-[#B39DDB] rounded-lg px-3 py-2">
                   <label
                     htmlFor="entry-date"
-                    className="text-[9px] font-bold text-[#512DA8] whitespace-nowrap"
+                    className="text-xs font-bold text-[#512DA8] whitespace-nowrap"
                   >
                     Entry date:
                   </label>
@@ -335,12 +591,12 @@ export default function Journal() {
                     onChange={(e) => {
                       if (e.target.value) setEntryDate(e.target.value);
                     }}
-                    className="flex-1 min-w-0 bg-transparent border-none text-[9px] text-[#512DA8] font-medium focus:outline-none cursor-pointer"
+                    className="flex-1 min-w-0 bg-transparent border-none text-xs text-[#512DA8] font-medium focus:outline-none cursor-pointer"
                   />
                   {entryDate !== todayStr() && (
                     <button
                       onClick={() => setEntryDate(todayStr())}
-                      className="text-[8px] text-[#7E57C2] font-semibold bg-white border border-[#B39DDB] rounded-full px-2 py-0.5 cursor-pointer hover:bg-[#EDE7F6] transition-colors whitespace-nowrap"
+                      className="text-xs text-[#7E57C2] font-semibold bg-white border border-[#B39DDB] rounded-full px-2 py-0.5 cursor-pointer hover:bg-[#EDE7F6] transition-colors whitespace-nowrap"
                     >
                       Reset to today
                     </button>
@@ -349,10 +605,10 @@ export default function Journal() {
 
                 {/* Selected prompt banner */}
                 {selectedPrompt && (
-                  <div className="bg-[#F3EEF9] border border-[#B39DDB] rounded-lg p-2.5 mb-3 flex items-start justify-between gap-2">
+                  <div className="bg-[#F3EEF9] border border-[#B39DDB] rounded-lg p-3 mb-3 flex items-start justify-between gap-2">
                     <div>
                       <span
-                        className="text-[7px] font-bold px-1.5 py-0.5 rounded-full border mr-2"
+                        className="text-xs font-bold px-2 py-0.5 rounded-full border mr-2"
                         style={{
                           backgroundColor: getTagColor(selectedPrompt.tag).bg,
                           color: getTagColor(selectedPrompt.tag).text,
@@ -361,10 +617,10 @@ export default function Journal() {
                       >
                         {selectedPrompt.tag}
                       </span>
-                      <span className="text-[8px] text-gray-400">
+                      <span className="text-xs text-gray-400">
                         Prompt #{selectedPrompt.id}
                       </span>
-                      <p className="text-[9px] text-[#4527A0] italic leading-[1.5] mt-1">
+                      <p className="text-sm text-[#4527A0] italic leading-relaxed mt-1">
                         "{selectedPrompt.prompt}"
                       </p>
                     </div>
@@ -373,27 +629,20 @@ export default function Journal() {
                       className="border-none bg-transparent cursor-pointer text-gray-400 hover:text-gray-600 flex-shrink-0"
                       aria-label="Remove prompt"
                     >
-                      <X size={12} />
+                      <X size={14} />
                     </button>
                   </div>
                 )}
 
-                {/* Textarea */}
-                <textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  rows={7}
-                  placeholder={
-                    selectedPrompt
-                      ? `Respond to the prompt: "${selectedPrompt.prompt.substring(0, 60)}..."`
-                      : "Start writing your thoughts freely..."
-                  }
-                  className="w-full bg-[#FAF8FF] border border-[#B39DDB] rounded-lg px-3 py-2.5 text-[10px] resize-none font-sans leading-[1.7] mb-3 focus:outline-none focus:ring-2 focus:ring-[#9575CD]/30"
-                />
+                {/* Rich Text Editor */}
+                <div className="mb-3 border border-[#B39DDB] rounded-lg overflow-hidden bg-[#FAF8FF] focus-within:ring-2 focus-within:ring-[#9575CD]/30">
+                  <RichToolbar editor={editor} />
+                  <EditorContent editor={editor} />
+                </div>
 
                 {/* Photo upload */}
                 <div className="mb-3">
-                  <p className="text-[9px] font-bold text-gray-600 mb-1.5">
+                  <p className="text-sm font-bold text-gray-600 mb-1.5">
                     Attach Photo{" "}
                     <span className="text-gray-400 font-normal">
                       (optional)
@@ -401,7 +650,7 @@ export default function Journal() {
                   </p>
                   <div
                     onClick={() => fileRef.current?.click()}
-                    className="border-2 border-dashed border-[#B39DDB] rounded-lg bg-[#FAF8FF] h-[64px] flex items-center justify-center cursor-pointer text-[#7E57C2] text-[10px] gap-2 hover:bg-[#EDE7F6] transition-colors overflow-hidden"
+                    className="border-2 border-dashed border-[#B39DDB] rounded-lg bg-[#FAF8FF] h-[72px] flex items-center justify-center cursor-pointer text-[#7E57C2] text-sm gap-2 hover:bg-[#EDE7F6] transition-colors overflow-hidden"
                   >
                     {photoPreview ? (
                       <div className="relative w-full h-full">
@@ -419,12 +668,12 @@ export default function Journal() {
                           className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5 border-none cursor-pointer"
                           aria-label="Remove photo"
                         >
-                          <X size={10} />
+                          <X size={12} />
                         </button>
                       </div>
                     ) : (
                       <>
-                        <Camera size={14} />
+                        <Camera size={16} />
                         <span>Upload Photo — JPG, PNG, GIF up to 10MB</span>
                       </>
                     )}
@@ -438,11 +687,11 @@ export default function Journal() {
                   />
                 </div>
 
-                {/* Save button */}
+                {/* Save */}
                 <button
                   onClick={handleSave}
                   disabled={loading}
-                  className="w-full py-2.5 bg-[#7E57C2] text-white border-none rounded-lg text-[11px] font-bold cursor-pointer disabled:opacity-50 hover:bg-[#512DA8] transition-colors"
+                  className="w-full py-2.5 bg-[#7E57C2] text-white border-none rounded-lg text-sm font-bold cursor-pointer disabled:opacity-50 hover:bg-[#512DA8] transition-colors"
                 >
                   {loading ? "Saving..." : "Save Journal Entry"}
                 </button>
@@ -450,13 +699,13 @@ export default function Journal() {
             </div>
           </div>
 
-          {/* RIGHT: Past Entries */}
+          {/* ── RIGHT: Past Entries ───────────────────────────────────────── */}
           <div className="bg-white rounded-xl border border-[#B39DDB] flex flex-col overflow-hidden min-h-0">
-            <div className="px-3.5 py-2.5 bg-[#EDE7F6] rounded-t-xl flex-shrink-0">
+            <div className="px-4 py-3 bg-[#EDE7F6] rounded-t-xl flex-shrink-0">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[12px] font-bold text-[#512DA8]">
+                <span className="text-sm font-bold text-[#512DA8]">
                   Past Entries
-                  <span className="ml-2 text-[9px] font-normal text-[#9575CD]">
+                  <span className="ml-2 text-xs font-normal text-[#9575CD]">
                     {filteredEntries.length}{" "}
                     {filteredEntries.length === 1 ? "entry" : "entries"}
                   </span>
@@ -464,7 +713,7 @@ export default function Journal() {
                 {filterDate !== todayStr() && (
                   <button
                     onClick={() => setFilterDate(todayStr())}
-                    className="text-[8px] font-semibold text-[#7E57C2] bg-white border border-[#B39DDB] rounded-full px-2 py-0.5 cursor-pointer hover:bg-[#F3EEF9] transition-colors"
+                    className="text-xs font-semibold text-[#7E57C2] bg-white border border-[#B39DDB] rounded-full px-2 py-0.5 cursor-pointer hover:bg-[#F3EEF9] transition-colors"
                   >
                     Back to Today
                   </button>
@@ -472,12 +721,12 @@ export default function Journal() {
               </div>
               <div className="flex items-center gap-1.5">
                 <CalendarDays
-                  size={11}
+                  size={13}
                   className="text-[#9575CD] flex-shrink-0"
                 />
                 <label
                   htmlFor="journal-date-filter"
-                  className="text-[9px] text-[#9575CD] font-semibold whitespace-nowrap"
+                  className="text-xs text-[#9575CD] font-semibold whitespace-nowrap"
                 >
                   Browse date:
                 </label>
@@ -490,7 +739,7 @@ export default function Journal() {
                   onChange={(e) => {
                     if (e.target.value) setFilterDate(e.target.value);
                   }}
-                  className="flex-1 min-w-0 bg-white border border-[#B39DDB] rounded-lg px-2 py-1 text-[9px] text-[#512DA8] font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#9575CD]/30"
+                  className="flex-1 min-w-0 bg-white border border-[#B39DDB] rounded-lg px-2 py-1 text-xs text-[#512DA8] font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#9575CD]/30"
                 />
               </div>
             </div>
@@ -499,14 +748,14 @@ export default function Journal() {
               {filteredEntries.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400 py-8">
                   <div className="text-4xl mb-2">
-                    {filterDate === todayStr() ? "" : "📅"}
+                    {filterDate === todayStr() ? "📝" : "📅"}
                   </div>
-                  <p className="text-[11px] font-semibold">
+                  <p className="text-sm font-semibold">
                     {filterDate === todayStr()
                       ? "No entries yet"
                       : "No entries on this date"}
                   </p>
-                  <p className="text-[9px] mt-1 text-center max-w-[180px]">
+                  <p className="text-xs mt-1 text-center max-w-[180px]">
                     {filterDate === todayStr()
                       ? "Write your first journal entry using the prompts or free write!"
                       : `Nothing was written on ${filterDateLabel}.`}
@@ -519,16 +768,24 @@ export default function Journal() {
                   return (
                     <div
                       key={entry.id}
-                      className="bg-[#FAF8FF] border border-[#E0D8F0] rounded-xl p-2.5 hover:border-[#B39DDB] transition-colors"
+                      className="bg-[#FAF8FF] border border-[#E0D8F0] rounded-xl p-3 hover:border-[#B39DDB] transition-colors"
                     >
                       {entry.prompt && (
-                        <p className="text-[8px] font-semibold text-[#9575CD] mb-1 truncate">
+                        <p className="text-xs font-semibold text-[#9575CD] mb-1 truncate">
                           {entry.prompt.split("—")[0]?.trim()}
                         </p>
                       )}
-                      <p className="text-[9px] text-gray-700 leading-[1.45] line-clamp-3 mb-2">
-                        {entry.content}
-                      </p>
+
+                      {isHtml(entry.content) ? (
+                        <div
+                          className="entry-content text-gray-700 mb-2 line-clamp-6"
+                          dangerouslySetInnerHTML={{ __html: entry.content }}
+                        />
+                      ) : (
+                        <p className="text-sm text-gray-700 leading-relaxed line-clamp-3 mb-2">
+                          {entry.content}
+                        </p>
+                      )}
 
                       {fullPhotoUrl && (
                         <div
@@ -541,7 +798,7 @@ export default function Journal() {
                           <img
                             src={fullPhotoUrl}
                             alt="Journal attachment"
-                            className="w-full h-[80px] object-cover rounded-lg transition-opacity group-hover:opacity-80"
+                            className="w-full h-[90px] object-cover rounded-lg transition-opacity group-hover:opacity-80"
                             loading="lazy"
                           />
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -553,7 +810,7 @@ export default function Journal() {
                       )}
 
                       <div className="flex items-center justify-between">
-                        <span className="text-[8px] text-gray-400">
+                        <span className="text-xs text-gray-400">
                           {new Date(entry.createdat).toLocaleDateString(
                             "en-MY",
                             {
@@ -566,7 +823,7 @@ export default function Journal() {
                         </span>
                         <div className="flex items-center gap-1.5">
                           <span
-                            className="text-[7px] font-bold px-1.5 py-0.5 rounded-full"
+                            className="text-xs font-bold px-2 py-0.5 rounded-full"
                             style={{
                               backgroundColor: badge.bg,
                               color: badge.color,
@@ -579,7 +836,7 @@ export default function Journal() {
                             className="text-gray-300 hover:text-[#EF5350] transition-colors border-none bg-transparent cursor-pointer p-0.5"
                             aria-label="Delete entry"
                           >
-                            <Trash2 size={12} />
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </div>

@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import AppShell from "../components/AppShell";
+import CrisisModal from "../components/CrisisModal";
+import { useCrisisAlert } from "../hooks/useCrisisAlert";
 import api from "../api/axios";
 import toast from "react-hot-toast";
 import { Trash2, Camera, X, CalendarDays, Expand } from "lucide-react";
@@ -19,7 +21,6 @@ const TAG_COLORS = {
 };
 
 const DEFAULT_TAG_COLOR = { bg: "#EDE7F6", text: "#512DA8", border: "#B39DDB" };
-
 const getTagColor = (tag) => TAG_COLORS[tag] || DEFAULT_TAG_COLOR;
 
 const toLocalDateStr = (date) => {
@@ -94,6 +95,9 @@ export default function Journal() {
 
   const fileRef = useRef(null);
 
+  const { alertOpen, alertReason, triggerAlert, dismissAlert } =
+    useCrisisAlert();
+
   const fetchPrompts = async () => {
     try {
       setPromptsLoading(true);
@@ -106,7 +110,6 @@ export default function Journal() {
     }
   };
 
-  // ── Fetch entries ─────────────────────────────────────────
   const fetchEntries = async () => {
     try {
       const { data } = await api.get("/api/journal");
@@ -127,7 +130,12 @@ export default function Journal() {
 
   const filterDateLabel = new Date(filterDate + "T00:00:00").toLocaleDateString(
     "en-MY",
-    { weekday: "short", day: "numeric", month: "short", year: "numeric" },
+    {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    },
   );
 
   const entryDates = [
@@ -168,16 +176,21 @@ export default function Journal() {
       }
       if (photo) formData.append("photo", photo);
 
-      await api.post("/api/journal", formData, {
+      const res = await api.post("/api/journal", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+
+      // ── Crisis keyword detection response ──────────────────
+      if (res.data?.showCrisisAlert) {
+        triggerAlert("journal_keyword");
+      }
 
       toast.success("Journal entry saved!");
       setContent("");
       setSelectedPrompt(null);
       setPhoto(null);
       setPhotoPreview(null);
-      setFilterDate(entryDate); // jump filter to the saved date
+      setFilterDate(entryDate);
       setEntryDate(todayStr());
       fetchEntries();
     } catch {
@@ -213,6 +226,13 @@ export default function Journal() {
         />
       )}
 
+      {/* ── Crisis Modal ────────────────────────────────────── */}
+      <CrisisModal
+        isOpen={alertOpen}
+        reason={alertReason}
+        onDismiss={dismissAlert}
+      />
+
       <div className="flex flex-col gap-3 h-full">
         {/* Page header */}
         <div className="flex-shrink-0">
@@ -222,11 +242,11 @@ export default function Journal() {
           </p>
         </div>
 
-        {/* ── Two-column layout ────────────────────────────────── */}
+        {/* Two-column layout */}
         <div className="grid grid-cols-1 md:grid-cols-[1fr_320px] gap-3 flex-1 overflow-auto min-h-0">
-          {/* ── LEFT: Prompts + Write ─────────────────────────── */}
+          {/* LEFT: Prompts + Write */}
           <div className="flex flex-col gap-3 overflow-y-auto pr-1">
-            {/* Journal Prompts — fetched from API */}
+            {/* Journal Prompts */}
             <div className="bg-white rounded-xl border border-[#B39DDB] flex-shrink-0">
               <div className="px-3.5 py-2.5 text-[12px] font-bold text-[#512DA8] bg-[#EDE7F6] rounded-t-xl flex items-center justify-between">
                 <span>Today's Journal Prompts</span>
@@ -239,7 +259,6 @@ export default function Journal() {
 
               <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {promptsLoading ? (
-                  // Skeleton placeholders while loading
                   [0, 1, 2, 3].map((i) => <PromptSkeleton key={i} />)
                 ) : prompts.length === 0 ? (
                   <div className="col-span-2 text-center py-6 text-gray-400">
@@ -431,7 +450,7 @@ export default function Journal() {
             </div>
           </div>
 
-          {/* ── RIGHT: Past Entries ───────────────────────────── */}
+          {/* RIGHT: Past Entries */}
           <div className="bg-white rounded-xl border border-[#B39DDB] flex flex-col overflow-hidden min-h-0">
             <div className="px-3.5 py-2.5 bg-[#EDE7F6] rounded-t-xl flex-shrink-0">
               <div className="flex items-center justify-between mb-2">
@@ -507,7 +526,6 @@ export default function Journal() {
                           {entry.prompt.split("—")[0]?.trim()}
                         </p>
                       )}
-
                       <p className="text-[9px] text-gray-700 leading-[1.45] line-clamp-3 mb-2">
                         {entry.content}
                       </p>

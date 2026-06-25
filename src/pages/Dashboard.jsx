@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppShell from "../components/AppShell";
+import CrisisModal from "../components/CrisisModal";
+import { useCrisisAlert } from "../hooks/useCrisisAlert";
 import api from "../api/axios";
 import toast from "react-hot-toast";
 import {
@@ -75,10 +77,12 @@ export default function Dashboard() {
   const [moodNote, setMoodNote] = useState("");
   const [moodScore, setMoodScore] = useState(5);
   const [journalContent, setJournalContent] = useState("");
-
   const [xp, setXp] = useState(0);
   const [streakDays, setStreakDays] = useState(0);
   const [todayLogged, setTodayLogged] = useState(false);
+
+  const { alertOpen, alertReason, triggerAlert, dismissAlert } =
+    useCrisisAlert();
 
   const xpNeeded = 500;
   const level = Math.max(1, Math.floor(xp / xpNeeded) + 1);
@@ -101,7 +105,16 @@ export default function Dashboard() {
         setTodayLogged(stats?.data?.todayLogged ?? false);
       })
       .catch(() => toast.error("Failed to load dashboard data"));
-  }, []);
+
+    api
+      .get("/api/crisis/check")
+      .then((res) => {
+        if (res.data?.hasPendingAlert) {
+          triggerAlert(res.data.lastTrigger?.trigger_type || "general");
+        }
+      })
+      .catch(() => {});
+  }, [triggerAlert]);
 
   const saveMood = async () => {
     if (selectedEmoji === null) return toast.error("Please select an emoji");
@@ -111,7 +124,13 @@ export default function Dashboard() {
       formData.append("score", moodScore);
       formData.append("label", LABELS[selectedEmoji]);
       formData.append("note", moodNote);
-      await api.post("/api/moods", formData);
+
+      const res = await api.post("/api/moods", formData);
+
+      if (res.data?.showCrisisAlert) {
+        triggerAlert(res.data.reason || "general");
+      }
+
       toast.success("Mood saved! +10 XP");
       setXp((prev) => prev + 10);
       setTodayLogged(true);
@@ -132,7 +151,14 @@ export default function Dashboard() {
         "prompt",
         "What is one thing you are grateful for today?",
       );
-      await api.post("/api/journal", formData);
+
+      const res = await api.post("/api/journal", formData);
+
+      // ── Crisis keyword detection response ──────────────────
+      if (res.data?.showCrisisAlert) {
+        triggerAlert("journal_keyword");
+      }
+
       toast.success("Journal entry saved! +50 XP");
       setXp((prev) => prev + 50);
       setJournalContent("");
@@ -143,6 +169,13 @@ export default function Dashboard() {
 
   return (
     <AppShell>
+      {/* ── Crisis Modal ──────────────────────────────────────── */}
+      <CrisisModal
+        isOpen={alertOpen}
+        reason={alertReason}
+        onDismiss={dismissAlert}
+      />
+
       <style>{`
         .progress-bar-striped {
           background-image: linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent);
@@ -242,11 +275,7 @@ export default function Dashboard() {
             <div className="p-5 flex flex-col flex-1">
               {/* Today mood status */}
               <div
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl mb-4 border ${
-                  todayLogged
-                    ? "bg-green-50 border-green-200"
-                    : "bg-amber-50 border-amber-200"
-                }`}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl mb-4 border ${todayLogged ? "bg-green-50 border-green-200" : "bg-amber-50 border-amber-200"}`}
               >
                 <div
                   className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${todayLogged ? "bg-green-100" : "bg-amber-100"}`}
@@ -335,11 +364,7 @@ export default function Dashboard() {
                 <div className="flex gap-4">
                   <div className="flex flex-col items-center gap-2 group cursor-pointer">
                     <div
-                      className={`w-12 h-12 rounded-full border-2 border-white flex items-center justify-center shadow-md transition-all duration-300 transform group-hover:-translate-y-1 group-hover:shadow-lg ${
-                        streakDays >= 7
-                          ? "bg-gradient-to-br from-orange-100 to-red-100 ring-2 ring-orange-200"
-                          : "bg-gray-100 ring-2 ring-gray-200 opacity-50 grayscale"
-                      }`}
+                      className={`w-12 h-12 rounded-full border-2 border-white flex items-center justify-center shadow-md transition-all duration-300 transform group-hover:-translate-y-1 group-hover:shadow-lg ${streakDays >= 7 ? "bg-gradient-to-br from-orange-100 to-red-100 ring-2 ring-orange-200" : "bg-gray-100 ring-2 ring-gray-200 opacity-50 grayscale"}`}
                     >
                       <Flame
                         className={
@@ -409,11 +434,7 @@ export default function Dashboard() {
                       setSelectedEmoji(i);
                       setMoodScore(i * 2 + 1);
                     }}
-                    className={`flex-1 h-11 rounded-xl text-xl flex items-center justify-center cursor-pointer border-[1.5px] transition-all ${
-                      selectedEmoji === i
-                        ? "bg-[#F48FB1] border-[#C2185B] shadow-md scale-105"
-                        : "bg-[#FFF0F5] border-[#F48FB1] hover:bg-[#FCE4EC]"
-                    }`}
+                    className={`flex-1 h-11 rounded-xl text-xl flex items-center justify-center cursor-pointer border-[1.5px] transition-all ${selectedEmoji === i ? "bg-[#F48FB1] border-[#C2185B] shadow-md scale-105" : "bg-[#FFF0F5] border-[#F48FB1] hover:bg-[#FCE4EC]"}`}
                   >
                     {e}
                   </button>
@@ -556,7 +577,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── Resources + Crisis ──────────────────────────────────────── */}
+        {/* ── Resources + Crisis Support ───────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-[60fr_40fr] gap-4 flex-shrink-0">
           {/* Resources */}
           <div className="bg-white rounded-xl border border-[#64B5F6] shadow-sm overflow-hidden">

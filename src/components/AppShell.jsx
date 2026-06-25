@@ -1,7 +1,7 @@
-// client/src/components/AppShell.jsx
 import { useState, useEffect } from "react";
 import Topnav from "./TopNav";
 import Footer from "./Footer";
+import CrisisButton from "./CrisisButton";
 
 export default function AppShell({ children }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -42,6 +42,9 @@ export default function AppShell({ children }) {
       </main>
 
       <Footer compact={true} />
+
+      {/* Persistent crisis help button — visible on every authenticated page */}
+      <CrisisButton />
     </div>
   );
 }

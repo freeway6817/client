@@ -1,6 +1,7 @@
-// client/src/pages/MoodTracker.jsx
 import { useState, useEffect, useRef } from "react";
 import AppShell from "../components/AppShell";
+import CrisisModal from "../components/CrisisModal";
+import { useCrisisAlert } from "../hooks/useCrisisAlert";
 import api from "../api/axios";
 import toast from "react-hot-toast";
 import { Trash2, Camera, Calendar, X, Expand } from "lucide-react";
@@ -21,13 +22,11 @@ const ALL_TAGS = [
   "Overwhelmed",
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────
 const todayStr = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
-// ─── Lightbox ─────────────────────────────────────────────────
 function Lightbox({ src, alt, onClose }) {
   useEffect(() => {
     const handler = (e) => e.key === "Escape" && onClose();
@@ -61,7 +60,6 @@ function Lightbox({ src, alt, onClose }) {
   );
 }
 
-// ─── Component ────────────────────────────────────────────────
 export default function MoodTracker() {
   const [selectedEmoji, setSelectedEmoji] = useState(null);
   const [score, setScore] = useState(5);
@@ -72,11 +70,13 @@ export default function MoodTracker() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(false);
   const [entryDate, setEntryDate] = useState(todayStr());
-
   const [lightboxSrc, setLightboxSrc] = useState(null);
   const [lightboxAlt, setLightboxAlt] = useState("");
 
   const fileRef = useRef(null);
+
+  const { alertOpen, alertReason, triggerAlert, dismissAlert } =
+    useCrisisAlert();
 
   const fetchData = async () => {
     try {
@@ -125,9 +125,14 @@ export default function MoodTracker() {
       formData.append("entryDate", entryDate);
       if (photo) formData.append("photo", photo);
 
-      await api.post("/api/moods", formData, {
+      const res = await api.post("/api/moods", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+
+      // ── Crisis detection response ────────────────────────
+      if (res.data?.showCrisisAlert) {
+        triggerAlert(res.data.reason || "general");
+      }
 
       toast.success("Mood entry saved!");
       setSelectedEmoji(null);
@@ -165,6 +170,13 @@ export default function MoodTracker() {
           onClose={() => setLightboxSrc(null)}
         />
       )}
+
+      {/* ── Crisis Modal ────────────────────────────────────── */}
+      <CrisisModal
+        isOpen={alertOpen}
+        reason={alertReason}
+        onDismiss={dismissAlert}
+      />
 
       <div className="max-w-7xl mx-auto w-full font-sans">
         <div className="mb-6">
@@ -256,7 +268,7 @@ export default function MoodTracker() {
                   rows="3"
                 />
 
-                {/* ── Entry Date Picker ─────────────────────────────── */}
+                {/* Entry Date Picker */}
                 <div className="mb-6">
                   <p className="text-[14px] font-semibold text-theme-dark mb-2">
                     Entry date
@@ -416,7 +428,6 @@ export default function MoodTracker() {
                           </p>
                         )}
 
-                        {/* Photo thumbnail + lightbox */}
                         {fullPhotoUrl && (
                           <div
                             className="relative mt-3 rounded-[6px] overflow-hidden cursor-pointer group/photo"

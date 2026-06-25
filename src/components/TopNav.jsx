@@ -55,11 +55,11 @@ export default function Topnav({ isMobile, mobileNavOpen, setMobileNavOpen }) {
   return (
     <>
       {/* ── Top Bar ─────────────────────────────────────────────────── */}
-      <nav className="w-full h-[60px] bg-[#1A3C5E] flex items-center flex-shrink-0 relative z-40">
+      <nav className="w-full h-[52px] bg-[#1A3C5E] flex items-center flex-shrink-0 relative z-40">
         {/* Inner wrapper — matches AppShell max-w so everything aligns */}
         <div className="max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-10 xl:px-16 flex items-center justify-between h-full">
           {/* Left: Brand + Desktop Nav Links */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-5">
             {/* Mobile: Hamburger */}
             {isMobile && (
               <button
@@ -72,13 +72,13 @@ export default function Topnav({ isMobile, mobileNavOpen, setMobileNavOpen }) {
             )}
 
             {/* Brand */}
-            <span className="text-[13px] font-bold text-white tracking-[0.3px] select-none whitespace-nowrap">
+            <span className="text-sm font-bold text-white tracking-[0.3px] select-none whitespace-nowrap">
               UNIMAS MHW
             </span>
 
             {/* Desktop Nav Links */}
             {!isMobile && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
                 {navItems.map((item) => {
                   const NavIcon = item.icon;
                   return (
@@ -86,7 +86,7 @@ export default function Topnav({ isMobile, mobileNavOpen, setMobileNavOpen }) {
                       key={item.to}
                       to={item.to}
                       className={({ isActive }) =>
-                        `flex items-center gap-1.5 px-3 h-[36px] rounded-lg text-[11px] font-medium no-underline transition-colors whitespace-nowrap ${
+                        `flex items-center gap-1.5 px-3 h-[34px] rounded-lg text-xs font-medium no-underline transition-colors whitespace-nowrap ${
                           isActive
                             ? "bg-[#1976D2] text-white font-bold"
                             : "text-[#A0BED8] hover:bg-[#2A4A6E] hover:text-white"
@@ -110,7 +110,7 @@ export default function Topnav({ isMobile, mobileNavOpen, setMobileNavOpen }) {
                   setShowProfile(false);
                   navigate("/progress");
                 }}
-                className="flex items-center gap-2 px-3 py-1.5 text-[10px] text-white
+                className="flex items-center gap-2 px-3 py-1.5 text-xs text-white
                   hover:bg-[#2A4A6E] border-none bg-transparent
                   cursor-pointer transition-colors rounded-lg whitespace-nowrap"
               >
@@ -125,12 +125,12 @@ export default function Topnav({ isMobile, mobileNavOpen, setMobileNavOpen }) {
                 onClick={() => setShowProfile((v) => !v)}
                 className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity border-none bg-transparent"
               >
-                <div className="w-8 h-8 rounded-full bg-[#3A5070] border-2 border-[#4A7090] flex items-center justify-center text-white text-[11px] font-bold select-none">
+                <div className="w-7 h-7 rounded-full bg-[#3A5070] border-2 border-[#4A7090] flex items-center justify-center text-white text-xs font-bold select-none">
                   {initials}
                 </div>
                 {!isMobile && (
                   <div className="flex flex-col items-start leading-tight">
-                    <span className="text-[11px] text-[#BDD5EA] font-semibold">
+                    <span className="text-xs text-[#BDD5EA] font-semibold">
                       {isAdmin
                         ? "Administrator"
                         : `Hello, ${user?.name?.split(" ")[0]}`}
@@ -142,10 +142,10 @@ export default function Topnav({ isMobile, mobileNavOpen, setMobileNavOpen }) {
               {showProfile && (
                 <div className="absolute right-0 top-[calc(100%+8px)] w-[200px] bg-white rounded-xl shadow-xl border border-gray-100 py-1 overflow-hidden z-50">
                   <div className="px-4 py-3 border-b border-gray-100 mb-1">
-                    <p className="text-[11px] font-bold text-gray-800 truncate">
+                    <p className="text-xs font-bold text-gray-800 truncate">
                       {user?.name}
                     </p>
-                    <p className="text-[9px] text-gray-500 truncate">
+                    <p className="text-xs text-gray-500 truncate">
                       {user?.email}
                     </p>
                   </div>
@@ -154,14 +154,14 @@ export default function Topnav({ isMobile, mobileNavOpen, setMobileNavOpen }) {
                       setShowProfile(false);
                       navigate(isAdmin ? "/admin" : "/dashboard");
                     }}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-[10px] text-gray-700 hover:bg-gray-50 hover:text-[#1976D2] border-none bg-transparent cursor-pointer transition-colors text-left"
+                    className="w-full flex items-center gap-2 px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-[#1976D2] border-none bg-transparent cursor-pointer transition-colors text-left"
                   >
                     <User size={14} />
                     {isAdmin ? "Admin Console" : "My Dashboard"}
                   </button>
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-4 py-2 mt-1 text-[10px] text-[#D32F2F] hover:bg-[#FFEBEE] border-none bg-transparent cursor-pointer transition-colors text-left"
+                    className="w-full flex items-center gap-2 px-4 py-2 mt-1 text-xs text-[#D32F2F] hover:bg-[#FFEBEE] border-none bg-transparent cursor-pointer transition-colors text-left"
                   >
                     <LogOut size={14} />
                     Log out
@@ -185,7 +185,7 @@ export default function Topnav({ isMobile, mobileNavOpen, setMobileNavOpen }) {
                   to={item.to}
                   onClick={() => setMobileNavOpen(false)}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 h-[44px] px-3 rounded-lg mb-1 text-[12px] font-medium no-underline transition-colors ${
+                    `flex items-center gap-3 h-[44px] px-3 rounded-lg mb-1 text-sm font-medium no-underline transition-colors ${
                       isActive
                         ? "bg-[#1976D2] text-white font-bold"
                         : "text-[#A0BED8] hover:bg-[#1E3A5A] hover:text-white"

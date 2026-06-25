@@ -34,9 +34,9 @@ export default function AppShell({ children }) {
         setMobileNavOpen={setMobileNavOpen}
       />
 
-      {/* Main Content Area — scrollable, max-width capped for 1920p */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-10 xl:px-16 py-4 sm:py-6 lg:py-8">
+      {/* Main Content Area — fills remaining height, inner pages scroll independently */}
+      <main className="flex-1 overflow-hidden flex flex-col min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-10 xl:px-16 py-3 sm:py-4 lg:py-5">
           {children}
         </div>
       </main>

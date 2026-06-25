@@ -117,7 +117,7 @@ export default function Goals() {
         {/* Header */}
         <div className="flex items-center justify-between flex-shrink-0">
           <div>
-            {/* <h1 className="text-[17px] font-bold text-navy">🎯 My Goals</h1> */}
+            {/* <h1 className="text-[17px] font-bold text-navy">My Goals</h1> */}
             <h1 className="text-[17px] font-bold text-navy">My Goals</h1>
 
             <p className="text-[10px] text-gray-500 mt-0.5">
@@ -176,7 +176,7 @@ export default function Goals() {
 
           {goals.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-              <div className="text-5xl mb-3">🎯</div>
+              <div className="text-5xl mb-3"></div>
               <p className="text-[13px] font-semibold">No goals yet</p>
               <p className="text-[11px] mt-1">
                 Click a category above to set your first goal.

@@ -87,7 +87,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     Promise.all([
-      api.get("/api/affirmations/daily"),
+      api.get("/api/dashboard/affirmation"),
       api.get("/api/goals"),
       api.get("/api/resources"),
       api.get("/api/gamification/stats"),

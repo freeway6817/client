@@ -110,7 +110,7 @@ export default function Journal() {
   const fetchPrompts = async () => {
     try {
       setPromptsLoading(true);
-      const { data } = await api.get("/api/journal-prompts");
+      const { data } = await api.get("/api/journal/prompts");
       setPrompts(data);
     } catch {
       toast.error("Failed to load prompts");

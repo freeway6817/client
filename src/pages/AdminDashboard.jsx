@@ -53,7 +53,7 @@ export default function AdminDashboard() {
     () => ({
       resources: "/api/admin/resources",
       affirmations: "/api/admin/affirmations",
-      prompts: "/api/admin/journal-prompts",
+      prompts: "/api/journal/prompts",
     }),
     [],
   );

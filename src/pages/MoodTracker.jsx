@@ -4,7 +4,7 @@ import AppShell from "../components/AppShell";
 import api from "../api/axios";
 import toast from "react-hot-toast";
 import { Trash2, Camera, Calendar, X, Expand } from "lucide-react";
-import { resolveMediaUrl } from "../api/resolveUrl";
+import { resolveMediaUrl } from "../api/axios";
 
 const EMOJIS = ["😢", "🙁", "😐", "🙂", "😁"];
 const LABELS = ["Awful", "Bad", "Okay", "Good", "Great"];

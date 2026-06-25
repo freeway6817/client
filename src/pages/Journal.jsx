@@ -1,12 +1,10 @@
-// client/src/pages/Journal.jsx
 import { useState, useEffect, useRef } from "react";
 import AppShell from "../components/AppShell";
 import api from "../api/axios";
 import toast from "react-hot-toast";
 import { Trash2, Camera, X, CalendarDays, Expand } from "lucide-react";
-import { resolveMediaUrl } from "../api/resolveUrl";
+import { resolveMediaUrl } from "../api/axios";
 
-// ─── Tag colour palette (covers common tags; falls back gracefully) ──────────
 const TAG_COLORS = {
   Gratitude: { bg: "#FFF9C4", text: "#F57F17", border: "#FFD54F" },
   Mindfulness: { bg: "#E8F5E9", text: "#2E7D32", border: "#81C784" },
@@ -20,12 +18,10 @@ const TAG_COLORS = {
   Stress: { bg: "#FCE4EC", text: "#880E4F", border: "#F48FB1" },
 };
 
-// Fallback colours for any tag not in the map above
 const DEFAULT_TAG_COLOR = { bg: "#EDE7F6", text: "#512DA8", border: "#B39DDB" };
 
 const getTagColor = (tag) => TAG_COLORS[tag] || DEFAULT_TAG_COLOR;
 
-// ─── Helpers ──────────────────────────────────────────────────
 const toLocalDateStr = (date) => {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -36,7 +32,6 @@ const toLocalDateStr = (date) => {
 const todayStr = () => toLocalDateStr(new Date());
 const entryDateStr = (createdat) => toLocalDateStr(new Date(createdat));
 
-// ─── Lightbox ─────────────────────────────────────────────────
 function Lightbox({ src, alt, onClose }) {
   useEffect(() => {
     const handler = (e) => e.key === "Escape" && onClose();
@@ -70,7 +65,6 @@ function Lightbox({ src, alt, onClose }) {
   );
 }
 
-// ─── Prompt skeleton loader ───────────────────────────────────
 function PromptSkeleton() {
   return (
     <div className="p-3 rounded-xl border-[1.5px] border-gray-100 bg-white animate-pulse">
@@ -84,29 +78,22 @@ function PromptSkeleton() {
   );
 }
 
-// ─── Component ────────────────────────────────────────────────
 export default function Journal() {
   const [entries, setEntries] = useState([]);
   const [prompts, setPrompts] = useState([]);
   const [promptsLoading, setPromptsLoading] = useState(true);
-
   const [selectedPrompt, setSelectedPrompt] = useState(null);
   const [content, setContent] = useState("");
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [entryDate, setEntryDate] = useState(todayStr());
-
-  // Filter for past entries panel
   const [filterDate, setFilterDate] = useState(todayStr());
-
-  // Lightbox
   const [lightboxSrc, setLightboxSrc] = useState(null);
   const [lightboxAlt, setLightboxAlt] = useState("");
 
   const fileRef = useRef(null);
 
-  // ── Fetch prompts from API ────────────────────────────────
   const fetchPrompts = async () => {
     try {
       setPromptsLoading(true);
@@ -134,7 +121,6 @@ export default function Journal() {
     fetchEntries();
   }, []);
 
-  // ── Derived values ────────────────────────────────────────
   const filteredEntries = entries.filter(
     (e) => entryDateStr(e.createdat) === filterDate,
   );
@@ -151,7 +137,6 @@ export default function Journal() {
     ? entryDates.reduce((a, b) => (a < b ? a : b))
     : todayStr();
 
-  // ── Photo upload ──────────────────────────────────────────
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -165,7 +150,6 @@ export default function Journal() {
 
   const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
 
-  // ── Save entry ────────────────────────────────────────────
   const handleSave = async () => {
     if (!content.trim()) {
       toast.error("Write something before saving");
@@ -203,7 +187,6 @@ export default function Journal() {
     }
   };
 
-  // ── Delete entry ──────────────────────────────────────────
   const handleDelete = async (id) => {
     try {
       await api.delete(`/api/journal/${id}`);
@@ -220,7 +203,6 @@ export default function Journal() {
     return { icon: "✍️", label: "Text", color: "#43A047", bg: "#E8F5E9" };
   };
 
-  // ─── Render ───────────────────────────────────────────────
   return (
     <AppShell>
       {lightboxSrc && (

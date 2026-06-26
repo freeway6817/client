@@ -1,4 +1,3 @@
-// client/src/components/CrisisCompanion.jsx
 import { useState, useRef, useEffect } from "react";
 import { Send, Bot, AlertTriangle, ChevronRight } from "lucide-react";
 import api from "../api/axios";
@@ -9,8 +8,6 @@ const OPENING_MESSAGE = {
     "Hi, I'm here with you right now. This is a safe space — you don't have to go through this alone. What's on your mind?",
 };
 
-// Max conversation history sent to the server per request.
-// Keeps token usage low and avoids hitting Cerebras rate limits.
 const MAX_HISTORY_TURNS = 6;
 
 export default function CrisisCompanion({ onShowResources }) {
@@ -38,14 +35,10 @@ export default function CrisisCompanion({ onShowResources }) {
 
     try {
       const { data } = await api.post("/api/crisis/companion-chat", {
-        // Only send the last MAX_HISTORY_TURNS messages to the server.
-        // Full history is kept in local state for display, but we trim
-        // what gets sent to Cerebras to stay within token limits.
         messages: updatedMessages.slice(-MAX_HISTORY_TURNS),
       });
 
       if (data.forceResources) {
-        // Danger detected: show server override message, then auto-switch tab
         setMessages((prev) => [
           ...prev,
           { role: "assistant", content: data.message },
@@ -82,14 +75,14 @@ export default function CrisisCompanion({ onShowResources }) {
 
   return (
     <div className="flex flex-col">
-      {/* Ethical disclaimer — non-negotiable */}
+      {/* Ethical disclaimer */}
       <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3">
         <AlertTriangle
           size={13}
           className="text-amber-600 flex-shrink-0 mt-0.5"
         />
         <p className="text-[9px] text-amber-700 leading-relaxed font-medium">
-          <strong>AI Support Companion</strong> — not a substitute for
+          <strong>AI Support Companion</strong>, not a substitute for
           professional help. This AI cannot call for help on your behalf.
         </p>
       </div>

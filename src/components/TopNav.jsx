@@ -13,6 +13,7 @@ import {
   Bookmark,
   Shield,
   Trophy,
+  Brain,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, NavLink } from "react-router-dom";
@@ -32,6 +33,7 @@ export default function Topnav({ isMobile, mobileNavOpen, setMobileNavOpen }) {
     { to: "/journal", icon: BookOpen, label: "Journal" },
     { to: "/resources", icon: Library, label: "Resources" },
     { to: "/bookmarks", icon: Bookmark, label: "Bookmarks" },
+    { to: "/mindfulness", icon: Brain, label: "Mindfulness" }, // ← added
     ...(user?.isadmin ? [{ to: "/admin", icon: Shield, label: "Admin" }] : []),
   ];
 

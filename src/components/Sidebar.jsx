@@ -9,6 +9,7 @@ import {
   Bookmark,
   LogOut,
   Shield,
+  Brain,
 } from "lucide-react";
 
 export default function Sidebar({ onClose }) {
@@ -29,6 +30,7 @@ export default function Sidebar({ onClose }) {
     { to: "/journal", icon: BookOpen, label: "Journal" },
     { to: "/resources", icon: Library, label: "Resources" },
     { to: "/bookmarks", icon: Bookmark, label: "Bookmarks" },
+    { to: "/mindfulness", icon: Brain, label: "Mindfulness" },
     ...(user?.isadmin
       ? [{ to: "/admin", icon: Shield, label: "Admin Dashboard" }]
       : []),
